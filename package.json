@@ -1,0 +1,83 @@
+{
+  "name": "parcella",
+  "version": "0.1.0",
+  "description": "Visualizador interactivo del elemento diferencial (dl, dS, dV) y la integración por regiones, para Cálculo multivariable y Electromagnetismo.",
+  "type": "module",
+  "author": {
+    "name": "José Labarca",
+    "email": "kegouro@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/kegouro/parcella",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "app": "npm run build && electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "katex": "^0.16.11",
+    "mathjs": "^13.2.0",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/three": "^0.169.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.1",
+    "vitest": "^2.1.5"
+  },
+  "build": {
+    "appId": "cl.joselabarca.parcella",
+    "productName": "Parcella",
+    "copyright": "Copyright © 2026 José Labarca",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "kegouro",
+        "repo": "parcella"
+      }
+    ],
+    "files": [
+      "dist/**",
+      "electron/**"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.education"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Education"
+    }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.21.5": true
+  }
+}

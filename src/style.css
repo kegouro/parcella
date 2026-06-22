@@ -1,0 +1,387 @@
+/* Parcella — tema "pizarra" con acento violeta/índigo.
+   Distinto del verde de Curvana; misma disciplina de variables CSS. */
+:root {
+  /* Fondos */
+  --bg: #10131c;
+  --panel: #14172a;
+  --panel-2: #181c30;
+  --line: #252a44;
+
+  /* Acento principal: índigo/violeta */
+  --indigo: #7c5cff;
+  --indigo-dim: #4a3499;
+  /* Acento secundario: lavanda para resaltar diferenciales */
+  --lavender: #c4b5fd;
+
+  /* Estado / alertas */
+  --amber: #fbbf24;
+  --danger: #f87171;
+
+  /* Texto */
+  --text: #dcd8f5;
+  --muted: #7a759e;
+
+  /* Geometría */
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+#app,
+.app {
+  height: 100vh;
+}
+
+/* ---------- Layout principal ---------- */
+.app {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---------- Panel de control ---------- */
+.panel {
+  width: 340px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e1060, #14172a);
+  border: 1px solid var(--indigo-dim);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: var(--indigo);
+}
+.brand {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--indigo);
+}
+.brand-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------- Secciones ---------- */
+.section {
+  margin-bottom: 20px;
+}
+.section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* ---------- Controles segmentados y pestañas ---------- */
+.seg,
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+.seg button,
+.tabs button {
+  flex: 1;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.tabs button {
+  font-size: 12px;
+  padding: 7px 4px;
+}
+.seg button:hover,
+.tabs button:hover {
+  border-color: var(--indigo-dim);
+}
+.seg button.active,
+.tabs button.active {
+  background: var(--indigo);
+  color: #fff;
+  border-color: var(--indigo);
+  font-weight: 700;
+}
+
+.pane {
+  margin-top: 10px;
+}
+
+/* ---------- Inputs ---------- */
+input[type='text'],
+input[type='number'],
+select {
+  width: 100%;
+  padding: 9px 10px;
+  background: #0d1020;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--indigo);
+}
+
+button.primary {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px;
+  background: var(--indigo);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+button.primary:hover {
+  filter: brightness(1.1);
+}
+
+button.ghost {
+  padding: 6px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+button.ghost:hover {
+  border-color: var(--indigo);
+}
+
+/* ---------- Campos de formulario ---------- */
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.field span {
+  width: 42px;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+}
+.range-row {
+  display: flex;
+  gap: 8px;
+}
+.field.small span {
+  width: 36px;
+}
+
+/* ---------- Checkboxes ---------- */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin: 8px 0;
+  cursor: pointer;
+}
+.check input {
+  width: auto;
+  accent-color: var(--indigo);
+}
+.subfield {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 10px 24px;
+}
+.subfield.vec input {
+  padding: 7px;
+}
+.subfield button {
+  padding: 0 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ---------- Mensajes de estado ---------- */
+.msg {
+  font-size: 12px;
+  margin-top: 8px;
+  min-height: 16px;
+  line-height: 1.4;
+}
+.msg.ok {
+  color: var(--lavender);
+}
+.msg.error {
+  color: var(--danger);
+}
+
+/* ---------- Firma / footer ---------- */
+.signature {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+.signature b {
+  color: var(--indigo);
+}
+
+/* ---------- Visor 3D ---------- */
+.viewer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.viewer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.equations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 15px;
+}
+.eq-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.eq-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.eq-body {
+  color: var(--text);
+}
+.viewer-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.viewport {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.viewport canvas {
+  display: block;
+}
+
+/* ---------- Barra de transporte (barrido) ---------- */
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--panel-2);
+  border-top: 1px solid var(--line);
+}
+.transport .play {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--indigo-dim);
+  background: var(--panel);
+  color: var(--indigo);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.transport .play.on {
+  background: var(--indigo);
+  color: #fff;
+}
+.transport .scrub {
+  flex: 1;
+  accent-color: var(--indigo);
+  padding: 0;
+  background: transparent;
+}
+.transport .speed {
+  width: auto;
+  flex-shrink: 0;
+}
+.readouts {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.chip {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  white-space: nowrap;
+}
+.chip b {
+  color: var(--lavender);
+  margin-right: 3px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .workspace {
+    flex-direction: column;
+  }
+  .panel {
+    width: 100%;
+    max-height: 45vh;
+  }
+  .readouts {
+    display: none;
+  }
+}

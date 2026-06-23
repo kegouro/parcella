@@ -166,4 +166,6 @@ Licencia [MIT](LICENSE).
 
 ---
 
+[![DOI](https://zenodo.org/badge/1277469119.svg)](https://zenodo.org/badge/latestdoi/1277469119)
+
 <sub>Parte del **[Pharos Project](https://kegouro.github.io)** — infraestructura científica y educativa sin barreras de entrada. · José Labarca Baeza</sub>

@@ -1,0 +1,31 @@
+{
+  "title": "Parcella — visualizador del elemento diferencial e integración",
+  "description": "Visualizador web interactivo del elemento diferencial (dl, dS, dV) y la integración por regiones, para cálculo multivariable y electromagnetismo.",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Labarca Baeza, José",
+      "orcid": "0009-0006-8890-4048",
+      "affiliation": "Universidad Técnica Federico Santa María, Valparaíso, Chile"
+    }
+  ],
+  "keywords": [
+    "calculus",
+    "multivariable calculus",
+    "vector calculus",
+    "physics education",
+    "visualization",
+    "WebGL",
+    "integration",
+    "differential element"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isPartOf",
+      "identifier": "https://kegouro.github.io",
+      "scheme": "url"
+    }
+  ]
+}

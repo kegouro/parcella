@@ -23,6 +23,7 @@
     "dist:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
+    "gifenc": "^1.0.3",
     "katex": "^0.16.11",
     "mathjs": "^13.2.0",
     "three": "^0.169.0"

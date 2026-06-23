@@ -12,10 +12,12 @@ import {
   createTransportBar,
   createTutorial,
   createDerivationMode,
+  createCurvilinearTool,
   hasSeenWelcome,
 } from './ui/index.js';
 import { loadStateFromUrl, syncUrl, copyShareLink } from './services/share.js';
 import { downloadDataUrl } from './services/exporter.js';
+import { recordSweepGif, downloadGif } from './services/gifRecorder.js';
 
 /** Duración (ms) de un barrido completo a velocidad 1. */
 const SWEEP_MS = 2600;
@@ -62,9 +64,11 @@ export function bootstrap(root: HTMLElement): void {
   const equations = el('div', 'equations');
   const actions = el('div', 'viewer-actions');
   const btnTutorial = mkButton('ghost', '¿Cómo se lee?');
+  const btnCurv = mkButton('ghost', 'Curvilíneas');
   const btnShare = mkButton('ghost', 'Compartir');
   const btnPng = mkButton('ghost', 'PNG');
-  actions.append(btnTutorial, btnShare, btnPng);
+  const btnGif = mkButton('ghost', 'GIF');
+  actions.append(btnTutorial, btnCurv, btnShare, btnPng, btnGif);
   viewerTop.append(equations, actions);
 
   const viewport = el('div', 'viewport');
@@ -86,6 +90,7 @@ export function bootstrap(root: HTMLElement): void {
   const view: Viewer = createViewer(viewport);
   const equationView = createEquationView(equations);
   const tutorial = createTutorial(document.body);
+  const curvilinear = createCurvilinearTool(document.body);
   const derivation = createDerivationMode(deriveWrap, view);
 
   createControlPanel(
@@ -133,6 +138,7 @@ export function bootstrap(root: HTMLElement): void {
 
   // --- Acciones del visor ---
   btnTutorial.addEventListener('click', () => tutorial.open());
+  btnCurv.addEventListener('click', () => curvilinear.open());
   btnShare.addEventListener('click', async () => {
     const ok = await copyShareLink(state);
     flash(btnShare, ok ? '¡Copiado!' : 'Error', 'Compartir');
@@ -142,6 +148,29 @@ export function bootstrap(root: HTMLElement): void {
       downloadDataUrl(view.toDataURL(), 'parcella.png');
     } catch {
       flash(btnPng, 'Error', 'PNG');
+    }
+  });
+  btnGif.addEventListener('click', async () => {
+    const canvas = viewport.querySelector('canvas');
+    if (!canvas) return;
+    stop();
+    const prev = playhead;
+    btnGif.textContent = 'Grabando…';
+    try {
+      const blob = await recordSweepGif({
+        canvas,
+        onFrame: (t) => {
+          playhead = clamp01(t);
+          renderSweep();
+        },
+      });
+      downloadGif(blob, 'parcella.gif');
+      flash(btnGif, '¡Listo!', 'GIF');
+    } catch {
+      flash(btnGif, 'Error', 'GIF');
+    } finally {
+      playhead = prev;
+      renderSweep();
     }
   });
 

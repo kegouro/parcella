@@ -15,3 +15,5 @@ export { createTutorial, hasSeenWelcome, markWelcomeSeen } from './tutorial.js';
 
 export { createDerivationMode } from './derivation.js';
 export type { ViewerLike } from './derivation.js';
+
+export { createCurvilinearTool } from './curvilinear.js';

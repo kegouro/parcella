@@ -18,7 +18,7 @@ import { buildSweepMesh, disposeSweepMesh } from './sweepMesh.js';
 import type { SweepMeshResult } from './sweepMesh.js';
 import { buildElementMesh, disposeElementMesh } from './elementMesh.js';
 import type { ElementMeshResult } from './elementMesh.js';
-import { buildFieldColors, applyFieldColors } from './fieldViz.js';
+import { buildFieldColors, applyFieldColors, buildVectorArrows, disposeVectorArrows } from './fieldViz.js';
 
 // ---------------------------------------------------------------------------
 // Interfaz pública del Viewer
@@ -78,6 +78,7 @@ export function createViewer(container: HTMLElement): Viewer {
   let coordGridGroup: THREE.Group | null = null;
   let sweepResult:    SweepMeshResult | null = null;
   let elemResult:     ElementMeshResult | null = null;
+  let vectorArrowGroup: THREE.Group | null = null;
 
   // Estado más reciente (para setProgress)
   let lastState: AppState | null = null;
@@ -124,6 +125,23 @@ export function createViewer(container: HTMLElement): Viewer {
         samples.surface
       ) {
         _applyScalarColorsToSweep(state, samples.surface, sweepResult);
+      }
+
+      // Flechas del campo vectorial (Fase 2)
+      if (state.integrand.mode === 'vector') {
+        const arrowSamples =
+          samples.kind === 'surface' && samples.surface
+            ? samples.surface
+            : samples.kind === 'curve' && samples.curve
+              ? samples.curve
+              : null;
+
+        if (arrowSamples) {
+          vectorArrowGroup = buildVectorArrows(state, arrowSamples);
+          if (vectorArrowGroup) {
+            ctx.scene.add(vectorArrowGroup);
+          }
+        }
       }
     } catch {
       // Barrido inválido: no se dibuja
@@ -230,6 +248,10 @@ export function createViewer(container: HTMLElement): Viewer {
       disposeElementMesh(elemResult);
       ctx.scene.remove(elemResult.group);
       elemResult = null;
+    }
+    if (vectorArrowGroup) {
+      disposeVectorArrows(vectorArrowGroup, ctx.scene);
+      vectorArrowGroup = null;
     }
   }
 

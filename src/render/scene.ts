@@ -42,7 +42,13 @@ export interface SceneContext {
 
 export function createScene(container: HTMLElement): SceneContext {
   // --- Renderer WebGL ---
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  // preserveDrawingBuffer: garantiza que canvas.toDataURL (export PNG y grabación
+  // de GIF) lea siempre un frame válido, no un buffer ya vaciado.
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: false,
+    preserveDrawingBuffer: true,
+  });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(BG_COLOR, 1);
   renderer.shadowMap.enabled = false;

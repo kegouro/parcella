@@ -7,6 +7,7 @@
 import type { AppState, SystemId, Region, Integrand } from '../core/types.js';
 import { getSystem } from '../core/coords.js';
 import { PRESETS } from '../core/library.js';
+import { deduceRegion } from '../core/inequalities.js';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -179,7 +180,7 @@ export function createControlPanel(
   const tabBar = el('div', 'pc-tabs');
   const tabBib = buildTab('Biblioteca', true);
   const tabMan = buildTab('Manual', false);
-  const tabDes = buildTab('Desigualdades (Fase 2)', false, true);
+  const tabDes = buildTab('Desigualdades', false);
 
   tabBar.appendChild(tabBib.btn);
   tabBar.appendChild(tabMan.btn);
@@ -270,9 +271,63 @@ export function createControlPanel(
   // --- Pestaña: Desigualdades ---
   const desPane = el('div', 'pc-pane');
   desPane.style.display = 'none';
-  const desMsg = el('p', 'pc-phase2');
-  desMsg.textContent = 'Disponible en Fase 2. Esta pestaña permitirá definir la región mediante desigualdades implícitas.';
-  desPane.appendChild(desMsg);
+
+  const desDesc = el('p', 'pc-small');
+  desDesc.textContent = 'Escribe una desigualdad por línea. Se reconocen bolas, semiesferas, cilindros, discos, cajas y paraboloides.';
+  desPane.appendChild(desDesc);
+
+  const desTextareaId = uid();
+  const desTextareaLabel = label('Desigualdades:', desTextareaId);
+  desPane.appendChild(desTextareaLabel);
+
+  const desTextarea = document.createElement('textarea');
+  desTextarea.id = desTextareaId;
+  desTextarea.className = 'pc-textarea';
+  desTextarea.rows = 4;
+  desTextarea.placeholder = 'x^2+y^2+z^2 <= 1\nz >= 0';
+  desPane.appendChild(desTextarea);
+
+  const desBtn = document.createElement('button');
+  desBtn.className = 'pc-btn';
+  desBtn.textContent = 'Deducir región';
+  desPane.appendChild(desBtn);
+
+  const desFeedback = el('p', 'pc-feedback');
+  desPane.appendChild(desFeedback);
+
+  desBtn.addEventListener('click', () => {
+    const lines = desTextarea.value
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (lines.length === 0) return;
+
+    const result = deduceRegion(lines);
+    if (result.ok && result.region) {
+      const newSysId = result.system ?? result.region.system;
+      const sys = getSystem(newSysId);
+      const newActive: [boolean, boolean, boolean] = sys.planar
+        ? [true, true, false]
+        : [true, true, true];
+      const newState: AppState = {
+        ...state,
+        region: result.region,
+        sweep: {
+          active: newActive,
+          frozen: [0.5, 0.5, 0],
+          progress: [1, 1, 1],
+        },
+      };
+      handlers.onChange(newState);
+      desFeedback.className = 'pc-feedback pc-feedback--ok';
+      desFeedback.textContent = result.note ?? 'Región deducida correctamente.';
+    } else {
+      desFeedback.className = 'pc-feedback pc-feedback--err';
+      desFeedback.textContent =
+        (result.reason ?? 'No se pudo deducir la región.') +
+        ' Puedes definirla manualmente en la pestaña Manual.';
+    }
+  });
 
   regionSection.body.appendChild(bibPane);
   regionSection.body.appendChild(manPane);
@@ -286,7 +341,7 @@ export function createControlPanel(
     switchTab([tabBib, tabMan, tabDes], [bibPane, manPane, desPane], 1);
   });
   tabDes.btn.addEventListener('click', () => {
-    // Fase 2: no switch, mostrar tooltip
+    switchTab([tabBib, tabMan, tabDes], [bibPane, manPane, desPane], 2);
   });
 
   // ====================== 3. ORDEN DE INTEGRACIÓN ======================
@@ -472,10 +527,10 @@ export function createControlPanel(
     intContainer.innerHTML = '';
 
     const radioGroup = el('div', 'pc-radio-group');
-    const modes: Array<{ value: string; labelText: string; disabled?: boolean }> = [
+    const modes: Array<{ value: string; labelText: string }> = [
       { value: 'geometric', labelText: '1 (geométrico)' },
       { value: 'scalar', labelText: 'f escalar' },
-      { value: 'vector', labelText: 'F⃗ vectorial (Fase 2)', disabled: true },
+      { value: 'vector', labelText: 'F⃗ vectorial' },
     ];
 
     const radios: HTMLInputElement[] = [];
@@ -489,15 +544,8 @@ export function createControlPanel(
       radio.id = radioId;
       radio.value = m.value;
       radio.checked = s.integrand.mode === m.value;
-      if (m.disabled) {
-        radio.disabled = true;
-      }
 
       const lbl = label(m.labelText, radioId);
-      if (m.disabled) {
-        lbl.className = 'pc-label pc-phase2-label';
-        lbl.title = 'Disponible en Fase 2';
-      }
 
       const radioRow = el('div', 'pc-radio-row');
       radioRow.appendChild(radio);
@@ -524,18 +572,75 @@ export function createControlPanel(
     scalarRow.appendChild(scalarInput);
     intContainer.appendChild(scalarRow);
 
-    function updateScalarInputState(mode: string): void {
+    // Vector inputs (Fx, Fy, Fz)
+    const vectorBlock = el('div', 'pc-vector-block');
+    const vectorNote = el('p', 'pc-small');
+    vectorNote.textContent = '2 vars activas → flujo ∬F·dS  |  1 var activa → circulación ∮F·dl';
+    vectorBlock.appendChild(vectorNote);
+
+    const vectorComponents: Array<{ lbl: string; aria: string }> = [
+      { lbl: 'Fx:', aria: 'Componente Fx del campo vectorial' },
+      { lbl: 'Fy:', aria: 'Componente Fy del campo vectorial' },
+      { lbl: 'Fz:', aria: 'Componente Fz del campo vectorial' },
+    ];
+    const vectorInputs: HTMLInputElement[] = [];
+    const defaultVector: [string, string, string] = s.integrand.vector ?? ['-y', 'x', '0'];
+
+    for (let vi = 0; vi < 3; vi++) {
+      const vRow = el('div', 'pc-row');
+      const vId = uid();
+      const vLbl = label(vectorComponents[vi].lbl, vId);
+      const vInput = el('input', 'pc-input');
+      vInput.type = 'text';
+      vInput.id = vId;
+      vInput.placeholder = ['x', 'y', 'z'][vi];
+      vInput.value = defaultVector[vi];
+      vInput.setAttribute('aria-label', vectorComponents[vi].aria);
+      vRow.appendChild(vLbl);
+      vRow.appendChild(vInput);
+      vectorBlock.appendChild(vRow);
+      vectorInputs.push(vInput);
+    }
+
+    vectorBlock.style.display = s.integrand.mode === 'vector' ? '' : 'none';
+    intContainer.appendChild(vectorBlock);
+
+    function updateInputVisibility(mode: string): void {
       scalarInput.disabled = mode !== 'scalar';
+      scalarRow.style.display = mode === 'vector' ? 'none' : '';
+      vectorBlock.style.display = mode === 'vector' ? '' : 'none';
+    }
+
+    function emitVectorChange(): void {
+      const vec: [string, string, string] = [
+        vectorInputs[0].value || 'x',
+        vectorInputs[1].value || 'y',
+        vectorInputs[2].value || 'z',
+      ];
+      const newState: AppState = {
+        ...state,
+        integrand: { mode: 'vector', vector: vec },
+      };
+      handlers.onChange(newState);
+    }
+
+    for (const vInput of vectorInputs) {
+      vInput.addEventListener('change', emitVectorChange);
     }
 
     for (const radio of radios) {
       radio.addEventListener('change', () => {
         if (!radio.checked) return;
         const mode = radio.value;
-        updateScalarInputState(mode);
+        updateInputVisibility(mode);
+        if (mode === 'vector') {
+          emitVectorChange();
+          return;
+        }
         const newIntegrand: Integrand = {
           mode: mode as Integrand['mode'],
           scalar: mode === 'scalar' ? (scalarInput.value || '1') : state.integrand.scalar,
+          vector: state.integrand.vector,
         };
         const newState: AppState = {
           ...state,
@@ -559,7 +664,11 @@ export function createControlPanel(
           radio.checked = s2.integrand.mode === radio.value;
         }
         scalarInput.value = s2.integrand.scalar ?? '';
-        updateScalarInputState(s2.integrand.mode);
+        const vec = s2.integrand.vector ?? ['-y', 'x', '0'];
+        for (let vi = 0; vi < 3; vi++) {
+          vectorInputs[vi].value = vec[vi];
+        }
+        updateInputVisibility(s2.integrand.mode);
       },
     };
   }
@@ -964,6 +1073,55 @@ function injectStyles(): void {
       display: flex;
       flex-direction: column;
       gap: 8px;
+    }
+    .pc-textarea {
+      background: #0f0f23;
+      border: 1px solid #3d3d60;
+      color: #e0e0f0;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 13px;
+      font-family: monospace;
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      outline: none;
+      margin: 4px 0;
+    }
+    .pc-textarea:focus {
+      border-color: #7c5cff;
+      box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.2);
+    }
+    .pc-btn {
+      background: #7c5cff;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      padding: 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: background 0.15s;
+    }
+    .pc-btn:hover {
+      background: #9b80ff;
+    }
+    .pc-feedback {
+      font-size: 12px;
+      margin: 4px 0 0;
+      min-height: 1em;
+    }
+    .pc-feedback--ok {
+      color: #9b80ff;
+    }
+    .pc-feedback--err {
+      color: #ff6b6b;
+    }
+    .pc-vector-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 6px 0 0;
     }
   `;
   document.head.appendChild(style);

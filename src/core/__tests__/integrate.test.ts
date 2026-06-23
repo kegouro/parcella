@@ -192,6 +192,110 @@ describe('integratePartial / integrateTotal', () => {
 });
 
 // ---------------------------------------------------------------------------
+// 8. Modo vector — Flujo ∫∫ F·dS en la esfera unidad (F = [x,y,z])
+//    r congelado en r=1, θ y φ activos (c=1 y c=2).
+//    Orientación canónica: dS = r_θ × r_φ (a=1 < b=2) → normal INWARD.
+//    F=[x,y,z] = r̂ en la esfera → F·dS = -sinφ → integral = -4π ≈ -12.566.
+//    Por el teorema de la divergencia con normal hacia AFUERA: |∫∫ F·dS| = 4π.
+//    Convención de signo: negativo con la orientación canónica (θ antes de φ).
+// ---------------------------------------------------------------------------
+
+describe('Flujo F=[x,y,z] esfera unidad (modo vector)', () => {
+  const sphereFluxRegion: Region = {
+    system: 'spherical',
+    order: [0, 1, 2],
+    bounds: [
+      { lower: 0, upper: 1 },         // r ∈ [0,1] (congelado en r=1)
+      { lower: 0, upper: 6.28318 },   // θ ∈ [0,2π]
+      { lower: 0, upper: 3.14159 },   // φ ∈ [0,π]
+    ],
+  };
+
+  // r congelado en t=1 (r = 0 + 1*1 = 1), θ y φ activos
+  const sweep: SweepState = {
+    active: [false, true, true],
+    frozen: [1, 0, 0],
+    progress: [0, 1, 1],
+  };
+
+  const vectorIntegrand: Integrand = { mode: 'vector', vector: ['x', 'y', 'z'] };
+
+  it('|∫∫ F·dS| ≈ 4π (≈ 12.566) — magnitud igual, signo según orientación', () => {
+    // res=50 da buena precisión sin excesiva lentitud
+    const result = integrateTotal(sphereFluxRegion, SPHERICAL, vectorIntegrand, sweep, { res: 50 });
+    // La orientación canónica (r_θ × r_φ) es inward → resultado es -4π
+    expect(Math.abs(result)).toBeCloseTo(4 * Math.PI, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. Modo vector — Flujo F=[0,0,1] por el disco unidad en z=0 (cilíndricas)
+//    ρ∈[0,1], φ∈[0,2π], z congelado. ρ (c=0) y φ (c=1) activos.
+//    Orientación: dS = r_ρ × r_φ = (0,0,ρ) → normal +z.
+//    F·dS = ρ → integral = π.
+// ---------------------------------------------------------------------------
+
+describe('Flujo F=[0,0,1] disco unidad z=0 (modo vector)', () => {
+  const diskFluxRegion: Region = {
+    system: 'cylindrical',
+    order: [0, 1, 2],
+    bounds: [
+      { lower: 0, upper: 1 },         // ρ ∈ [0,1]
+      { lower: 0, upper: 6.28318 },   // φ ∈ [0,2π]
+      { lower: 0, upper: 1 },         // z (congelado)
+    ],
+  };
+
+  const sweep: SweepState = {
+    active: [true, true, false],  // ρ y φ activos, z congelado en 0
+    frozen: [0, 0, 0],
+    progress: [1, 1, 0],
+  };
+
+  const vectorIntegrand: Integrand = { mode: 'vector', vector: ['0', '0', '1'] };
+
+  it('∫∫ F·dS = π ≈ 3.14159 (normal +z)', () => {
+    const result = integrateTotal(diskFluxRegion, CYLINDRICAL, vectorIntegrand, sweep, { res: 60 });
+    expect(result).toBeCloseTo(Math.PI, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10. Modo vector — Circulación F=[-y,x,0] círculo unidad z=0 (esféricas/cilíndricas)
+//     φ_cilíndrica (c=1) activo, ρ=1 congelado, z=0 congelado.
+//     dr/dt = (-sinφ * 2π, cosφ * 2π, 0)  (∂r/∂φ * rangeφ con ρ=1)
+//     F=[-y,x,0] = [-sinφ, cosφ, 0] en ρ=1.
+//     F · dr/dt = ((-sinφ)(-sinφ 2π) + (cosφ)(cosφ 2π)) = 2π.
+//     Integral sobre t∈[0,1]: ∫₀¹ 2π dt = 2π ≈ 6.28318.
+// ---------------------------------------------------------------------------
+
+describe('Circulación F=[-y,x,0] círculo unidad z=0 (modo vector)', () => {
+  const circleRegion: Region = {
+    system: 'cylindrical',
+    order: [0, 1, 2],
+    bounds: [
+      { lower: 0, upper: 1 },         // ρ ∈ [0,1] (congelado en ρ=1)
+      { lower: 0, upper: 6.28318 },   // φ ∈ [0,2π]
+      { lower: 0, upper: 1 },         // z (congelado en 0)
+    ],
+  };
+
+  // ρ congelado en t=1 → ρ = lower + range * 1 = 0 + 1*1 = 1
+  const sweep: SweepState = {
+    active: [false, true, false],  // solo φ activo
+    frozen: [1, 0, 0],            // ρ fijo en r=1 (frozen[0]=1 → t=1 → ρ=1)
+    progress: [0, 1, 0],
+  };
+
+  const vectorIntegrand: Integrand = { mode: 'vector', vector: ['-y', 'x', '0'] };
+
+  it('∮ F·dl = 2π ≈ 6.28318', () => {
+    const result = integrateTotal(circleRegion, CYLINDRICAL, vectorIntegrand, sweep, { res: 80 });
+    expect(result).toBeCloseTo(2 * Math.PI, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 7. Longitud de arco en esféricas (1 variable activa)
 //    θ activo (índice canónico 1), r=1 congelado, φ=π/2 congelado
 //    Arco = ∫₀^{2π} h_θ dθ = ∫₀^{2π} r·sinφ dθ = 1·1·2π ≈ 6.28318

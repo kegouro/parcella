@@ -396,6 +396,99 @@ export const PRESETS: Preset[] = [
       };
     },
   },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 13. DISCO POLAR (polares, 2D)
+  //     r ∈ [0,1], φ ∈ [0,2π), z = 0
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    id: 'polar-disk',
+    label: 'Disco polar',
+    description:
+      'Disco unitario en coordenadas polares. ' +
+      'r ∈ [0,1], φ ∈ [0,2π); z está congelada en el plano z=0.',
+    system: 'polar',
+    build(): Region {
+      return {
+        system: 'polar',
+        order: [0, 1, 2],
+        bounds: [
+          { lower: 0, upper: 1 },          // r
+          { lower: 0, upper: `2 * pi` },   // φ
+          { lower: 0, upper: 0 },          // z congelada en 0
+        ],
+      };
+    },
+    defaultSweep(): SweepState {
+      return {
+        active: [true, true, false],
+        frozen: [0, 0, 0],
+        progress: [0, 0, 0],
+      };
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 14. CORONA POLAR (polares, 2D)
+  //     r ∈ [0.5,1], φ ∈ [0,2π), z = 0
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    id: 'polar-annulus',
+    label: 'Corona polar',
+    description:
+      'Anillo plano (corona) en coordenadas polares: r ∈ [0.5,1], φ ∈ [0,2π). ' +
+      'z congelada en el plano z=0.',
+    system: 'polar',
+    build(): Region {
+      return {
+        system: 'polar',
+        order: [0, 1, 2],
+        bounds: [
+          { lower: 0.5, upper: 1 },        // r
+          { lower: 0, upper: `2 * pi` },   // φ
+          { lower: 0, upper: 0 },          // z congelada en 0
+        ],
+      };
+    },
+    defaultSweep(): SweepState {
+      return {
+        active: [true, true, false],
+        frozen: [0, 0, 0],
+        progress: [0, 0, 0],
+      };
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 15. SECTOR POLAR (polares, 2D)
+  //     r ∈ [0,1], φ ∈ [0,π/2), z = 0
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    id: 'polar-sector',
+    label: 'Sector polar',
+    description:
+      'Sector circular de 90° en coordenadas polares: r ∈ [0,1], φ ∈ [0,π/2). ' +
+      'z congelada en el plano z=0.',
+    system: 'polar',
+    build(): Region {
+      return {
+        system: 'polar',
+        order: [0, 1, 2],
+        bounds: [
+          { lower: 0, upper: 1 },          // r
+          { lower: 0, upper: `pi / 2` },   // φ
+          { lower: 0, upper: 0 },          // z congelada en 0
+        ],
+      };
+    },
+    defaultSweep(): SweepState {
+      return {
+        active: [true, true, false],
+        frozen: [0, 0, 0],
+        progress: [0, 0, 0],
+      };
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------

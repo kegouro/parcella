@@ -60,6 +60,9 @@ const EXPECTED_IDS = [
   'wedge',
   'disk',
   'annulus',
+  'polar-disk',
+  'polar-annulus',
+  'polar-sector',
 ];
 
 // ---------------------------------------------------------------------------
@@ -100,12 +103,12 @@ describe.each(PRESETS.map((p) => ({ preset: p, id: p.id })))(
     });
 
     it('tiene system válido', () => {
-      expect(['cartesian', 'cylindrical', 'spherical', 'curvilinear']).toContain(preset.system);
+      expect(['cartesian', 'polar', 'cylindrical', 'spherical', 'curvilinear']).toContain(preset.system);
     });
 
     it('build() devuelve una Region con system válido', () => {
       const region = preset.build();
-      expect(['cartesian', 'cylindrical', 'spherical', 'curvilinear']).toContain(region.system);
+      expect(['cartesian', 'polar', 'cylindrical', 'spherical', 'curvilinear']).toContain(region.system);
     });
 
     it('order es permutación de [0,1,2]', () => {
@@ -242,6 +245,73 @@ describe('Presets cartesianos', () => {
     // En x=L: z_max = 0
     const L = 2;
     expect(evalBound(upper, { x: L })).toBeCloseTo(0, 8);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Presets polares — invariantes
+// ---------------------------------------------------------------------------
+
+describe('Presets polares', () => {
+  const POLAR_IDS = ['polar-disk', 'polar-annulus', 'polar-sector'] as const;
+
+  for (const pid of POLAR_IDS) {
+    describe(pid, () => {
+      it('order es permutación de [0,1,2]', () => {
+        const region = findPreset(pid)!.build();
+        expect(isValidOrder(region.order)).toBe(true);
+      });
+
+      it('system === "polar"', () => {
+        const preset = findPreset(pid)!;
+        expect(preset.system).toBe('polar');
+        expect(preset.build().system).toBe('polar');
+      });
+
+      it('z (índice 2) congelada: active[2] === false', () => {
+        const sweep = findPreset(pid)!.defaultSweep();
+        expect(sweep.active.length).toBe(3);
+        expect(sweep.active[2]).toBe(false);
+      });
+
+      it('r y φ activos: active[0] y active[1] === true', () => {
+        const sweep = findPreset(pid)!.defaultSweep();
+        expect(sweep.active[0]).toBe(true);
+        expect(sweep.active[1]).toBe(true);
+      });
+
+      it('bounds[2] = z en [0,0] (plano z=0)', () => {
+        const region = findPreset(pid)!.build();
+        expect(evalBound(region.bounds[2].lower, {})).toBe(0);
+        expect(evalBound(region.bounds[2].upper, {})).toBe(0);
+      });
+
+      it('todos los límites son parseables', () => {
+        const region = findPreset(pid)!.build();
+        for (const b of region.bounds) {
+          expect(tryEvalBound(b.lower)).toBe(true);
+          expect(tryEvalBound(b.upper)).toBe(true);
+        }
+      });
+    });
+  }
+
+  it('polar-disk: r_min = 0, r_max = 1', () => {
+    const r = findPreset('polar-disk')!.build();
+    expect(evalBound(r.bounds[0].lower, {})).toBe(0);
+    expect(evalBound(r.bounds[0].upper, {})).toBe(1);
+  });
+
+  it('polar-annulus: r_min > 0 (hueco central)', () => {
+    const r = findPreset('polar-annulus')!.build();
+    expect(evalBound(r.bounds[0].lower, {})).toBeGreaterThan(0);
+  });
+
+  it('polar-sector: φ_max < 2π (solo un sector)', () => {
+    const r = findPreset('polar-sector')!.build();
+    const phiUpper = evalBound(r.bounds[1].upper, {});
+    expect(phiUpper).toBeGreaterThan(0);
+    expect(phiUpper).toBeLessThan(2 * Math.PI);
   });
 });
 

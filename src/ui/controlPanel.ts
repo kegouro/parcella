@@ -175,6 +175,7 @@ export function createControlPanel(
   // Grupo por sistema
   const systemLabels: Record<SystemId, string> = {
     cartesian: 'Cartesianas',
+    polar: 'Polares',
     cylindrical: 'Cilíndricas',
     spherical: 'Esféricas',
     curvilinear: 'Curvilíneas',

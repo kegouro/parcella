@@ -7,6 +7,7 @@ import type { AppState } from '../core/types.js';
 import { getSystem } from '../core/coords.js';
 import { differentialLatex } from '../core/differential.js';
 import { integratePartial, integrateTotal, progressFraction, measureLabel } from '../core/integrate.js';
+import { boundToLatex } from '../core/format.js';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -210,15 +211,6 @@ function buildIntegralLatex(state: AppState, sys: ReturnType<typeof getSystem>, 
   }
 
   return inner;
-}
-
-function boundToLatex(bound: number | string): string {
-  if (typeof bound === 'number') return String(bound);
-  // Basic conversions of mathjs to LaTeX
-  return bound
-    .replace(/\bpi\b/g, '\\pi')
-    .replace(/\bsqrt\(([^)]+)\)/g, '\\sqrt{$1}')
-    .replace(/\*/g, ' \\cdot ');
 }
 
 // ---------------------------------------------------------------------------

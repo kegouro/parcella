@@ -10,6 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   CARTESIAN,
+  POLAR,
   CYLINDRICAL,
   SPHERICAL,
   SYSTEMS,
@@ -59,6 +60,76 @@ describe('CARTESIAN', () => {
     expect(CARTESIAN.vars[0].name).toBe('x');
     expect(CARTESIAN.vars[1].name).toBe('y');
     expect(CARTESIAN.vars[2].name).toBe('z');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POLARES (2D)
+// ---------------------------------------------------------------------------
+
+describe('POLAR', () => {
+  it('tiene id correcto', () => {
+    expect(POLAR.id).toBe('polar');
+  });
+
+  it('planar === true', () => {
+    expect(POLAR.planar).toBe(true);
+  });
+
+  it('vars: r, phi, z', () => {
+    expect(POLAR.vars[0].name).toBe('r');
+    expect(POLAR.vars[1].name).toBe('phi');
+    expect(POLAR.vars[2].name).toBe('z');
+  });
+
+  it('toCartesian(2, 0, 0) → [2, 0, 0]', () => {
+    const [x, y, z] = POLAR.toCartesian(2, 0, 0);
+    expect(x).toBeCloseTo(2, 10);
+    expect(y).toBeCloseTo(0, 10);
+    expect(z).toBeCloseTo(0, 10);
+  });
+
+  it('toCartesian(1, pi/2, 0) → [0, 1, 0]', () => {
+    const [x, y, z] = POLAR.toCartesian(1, Math.PI / 2, 0);
+    expect(x).toBeCloseTo(0, 10);
+    expect(y).toBeCloseTo(1, 10);
+    expect(z).toBeCloseTo(0, 10);
+  });
+
+  it('toCartesian preserva z fuera del plano', () => {
+    const [, , z] = POLAR.toCartesian(1, 0, 5);
+    expect(z).toBeCloseTo(5, 10);
+  });
+
+  it('scaleFactors = [1, r, 1]', () => {
+    const h = POLAR.scaleFactors(3, Math.PI / 4, 0);
+    expect(h[0]).toBeCloseTo(1, 10);
+    expect(h[1]).toBeCloseTo(3, 10);
+    expect(h[2]).toBeCloseTo(1, 10);
+  });
+
+  it('jacobian(3, ...) → 3', () => {
+    expect(POLAR.jacobian(3, 1, 0)).toBeCloseTo(3, 10);
+  });
+
+  it('jacobian(0, ...) → 0', () => {
+    expect(POLAR.jacobian(0, 1, 0)).toBeCloseTo(0, 10);
+  });
+
+  it('jacobian = producto de scaleFactors', () => {
+    const r = 2.5;
+    const h = POLAR.scaleFactors(r, 1, 0);
+    expect(POLAR.jacobian(r, 1, 0)).toBeCloseTo(h[0] * h[1] * h[2], 10);
+  });
+
+  it('volumeElementLatex es el elemento de área', () => {
+    expect(POLAR.volumeElementLatex).toBe('r\\,dr\\,d\\phi');
+  });
+
+  it('jacobianFactorsLatex coherentes con el elemento de área (product dr · r dφ = r dr dφ)', () => {
+    const [f0, f1] = POLAR.jacobianFactorsLatex;
+    expect(f0).toBe('dr');
+    expect(f1).toBe('r\\,d\\phi');
   });
 });
 
@@ -245,6 +316,10 @@ describe('SYSTEMS / getSystem', () => {
     expect(SYSTEMS['cartesian']).toBe(CARTESIAN);
   });
 
+  it('SYSTEMS["polar"] === POLAR', () => {
+    expect(SYSTEMS['polar']).toBe(POLAR);
+  });
+
   it('SYSTEMS["cylindrical"] === CYLINDRICAL', () => {
     expect(SYSTEMS['cylindrical']).toBe(CYLINDRICAL);
   });
@@ -255,6 +330,10 @@ describe('SYSTEMS / getSystem', () => {
 
   it('SYSTEMS["curvilinear"] existe (identidad por defecto)', () => {
     expect(SYSTEMS['curvilinear']).toBeDefined();
+  });
+
+  it('getSystem("polar") devuelve POLAR', () => {
+    expect(getSystem('polar')).toBe(POLAR);
   });
 
   it('getSystem("spherical") devuelve SPHERICAL', () => {

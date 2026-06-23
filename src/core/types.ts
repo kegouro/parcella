@@ -22,7 +22,7 @@ export type Vec3 = [number, number, number];
  * 'curvilinear' es el caso general del que los demás son instancias;
  * se usa en Fase 2 cuando el usuario define su propio mapeo.
  */
-export type SystemId = 'cartesian' | 'cylindrical' | 'spherical' | 'curvilinear';
+export type SystemId = 'cartesian' | 'polar' | 'cylindrical' | 'spherical' | 'curvilinear';
 
 /**
  * Especificación de una variable de coordenada individual.
@@ -80,6 +80,13 @@ export interface CoordSystem {
    * Nota: el producto de los tres factores debe coincidir con volumeElementLatex.
    */
   jacobianFactorsLatex: [string, string, string];
+
+  /**
+   * true si el sistema es PLANAR (2D, en el plano z=0), como las polares.
+   * En ese caso la tercera variable está "fuera de plano" y la UI la mantiene
+   * congelada/oculta; el elemento máximo es un área (dA), no un volumen.
+   */
+  planar?: boolean;
 }
 
 // ---------------------------------------------------------------------------

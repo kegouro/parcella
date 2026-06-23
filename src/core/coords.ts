@@ -58,6 +58,40 @@ export const CARTESIAN: CoordSystem = {
 };
 
 // ---------------------------------------------------------------------------
+// POLARES (2D)
+// ---------------------------------------------------------------------------
+
+export const POLAR: CoordSystem = {
+  id: 'polar',
+  label: 'Polares',
+  planar: true,
+
+  vars: [
+    { name: 'r',   latex: 'r',      label: 'Radio' },
+    { name: 'phi', latex: '\\phi',  label: 'Azimut' },
+    { name: 'z',   latex: 'z',      label: 'Fuera de plano' },
+  ],
+
+  // u=r, v=φ, w=z   (igual que cilíndricas; z por compatibilidad con el motor de 3 vars)
+  toCartesian(r: number, phi: number, z: number): Vec3 {
+    return [r * Math.cos(phi), r * Math.sin(phi), z];
+  },
+
+  scaleFactors(r: number, _phi: number, _z: number): Vec3 {
+    return [1, r, 1];
+  },
+
+  jacobian(r: number, _phi: number, _z: number): number {
+    return r;
+  },
+
+  // Elemento de ÁREA (sistema planar; no hay volumen)
+  volumeElementLatex: 'r\\,dr\\,d\\phi',
+
+  jacobianFactorsLatex: ['dr', 'r\\,d\\phi', 'dz'],
+};
+
+// ---------------------------------------------------------------------------
 // CILÍNDRICAS
 // ---------------------------------------------------------------------------
 
@@ -136,6 +170,7 @@ export const SPHERICAL: CoordSystem = {
  */
 export const SYSTEMS: Record<SystemId, CoordSystem> = {
   cartesian:   CARTESIAN,
+  polar:       POLAR,
   cylindrical: CYLINDRICAL,
   spherical:   SPHERICAL,
   curvilinear: CARTESIAN,  // identidad por defecto (Fase 2: reemplazar con makeCurvilinear)

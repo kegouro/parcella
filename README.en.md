@@ -1,116 +1,166 @@
-<p align="right"><a href="README.md">🇪🇸 Español</a> · 🇬🇧 English</p>
+<p align="right"><a href="README.md">🇪🇸 Español</a> · <b>🇬🇧 English</b></p>
 
-# ▪ Parcella
+<div align="center">
 
-**See the differential. Integrate what you see.**
+# Parcella
+
+### See the differential. Integrate what you see.
+
+Interactive visualizer of the **differential element** ( $dl$ · $dS$ · $dV$ ) and region integration,
+for **Multivariable Calculus** and **Electromagnetism**.
+
+[![Try it live](https://img.shields.io/badge/▶_Try_it_live-7c5cff?style=for-the-badge&logoColor=white)](https://kegouro.github.io/parcella/)
+
+[![CI](https://github.com/kegouro/parcella/actions/workflows/ci.yml/badge.svg)](https://github.com/kegouro/parcella/actions/workflows/ci.yml)
+[![Deploy](https://github.com/kegouro/parcella/actions/workflows/deploy.yml/badge.svg)](https://github.com/kegouro/parcella/actions/workflows/deploy.yml)
+![Tests](https://img.shields.io/badge/tests-463_passing-7c5cff)
+![License](https://img.shields.io/badge/license-MIT-7c5cff)
+
+<br>
 
 ![Parcella](docs/screenshot.png)
 
-Parcella is an interactive 3D web visualizer for the **differential element** (`dl`, `dS`, `dV`), built for Multivariable Calculus and Electromagnetism. It solves a concrete teaching problem: it is hard to show **what `dV` looks like** in spherical coordinates, or what it means to integrate "in `θ` yes, in `φ` no, in `r` yes". Parcella makes it visual: a tiny infinitesimal piece that **sweeps** the region according to which variables are active and which are frozen, building geometry in real time and accumulating the integral as it goes.
+</div>
 
 ---
 
-## ✨ Features
+When teaching multiple integrals, solids of revolution, or electromagnetism, it is hard to show **what
+a differential looks like** and what it means to integrate over only some variables: *in $r$ yes, in
+$\theta$ halfway, in $\phi$ no*. **Parcella** makes it visible. A tiny infinitesimal piece — a
+*parcella* — **sweeps** the region according to which variables you integrate and which you freeze,
+while the differential is assembled term by term and the integral accumulates in real time. And **each
+coordinate has its own color**: the same color tints its factor in the formula, its slice in the 3D
+figure, and its slider — so you can see at a glance *which integral builds which part*.
 
-- **Animated differential element** — the piece sweeps the region based on active variables: point → curve (`dl`) → patch (`dS`) → solid (`dV`). Freezing a variable lowers the dimension of the element.
-- **Differential built term by term** — KaTeX assembles the expression live, for example `dV = r² sinφ · dr dθ dφ`, highlighting the factor contributed by each active variable.
-- **Live accumulated integral with progress bar** — the value is computed numerically as the sweep advances, with play/pause/speed controls.
-- **Three coordinate systems** — Cartesian (`x, y, z`), cylindrical (`ρ, φ, z`), and spherical (`r, θ, φ`); general curvilinear coordinates in Phase 2.
-- **Three ways to define the region:**
-  - **Library of 12 presets** — solid sphere, spherical shell, hemisphere, spherical cap, cylinder, cone, rectangular box, torus, paraboloid, wedge, disk (2D), and annulus.
-  - **Manual bounds** — constants or expressions depending on outer variables (e.g. `rho^2 / c`).
-  - **Inequalities** — automatic bound deduction (Phase 2).
-- **Geometric or scalar integrand** — integrate `1` (volume/area/length) or a scalar function `f(x,y,z)`. Vector field `F·dS`, `F·dl` for EM in Phase 2.
-- **Configurable integration order** — change the order (`dφ dθ dr` ⇄) and watch how the sweep changes.
-- **Share by URL** — the full state is serialized into the URL.
-- **Export PNG** — capture the 3D scene with one click.
-- **"Blackboard" theme** — dark background with violet/indigo accent.
-- **Web + desktop** — deployed on GitHub Pages; also available as an Electron app for macOS, Windows, and Linux.
+<br>
 
----
+## Two ways to use it
 
-## 🏗️ Architecture
+<table>
+<tr>
+<td width="50%" valign="top">
 
-The same discipline as the sibling project Curvana: **pure and testable `core/`** (no DOM, no Three.js) decoupled from `render/` and `ui/`. The dependency rule is strict: `ui/` and `render/` may import from `core/`, but `core/` never imports from them.
+### ◰ Explore
+
+Define a region, choose the integrand, and **watch the sweep**.
+Each variable has a **slider with its color**: drag it and observe
+how that integral fills its part of the figure and how much it adds to
+the total.
+
+Freeze a variable and the element drops one dimension:
+that way you *see* the difference between a volume, a surface, and a curve.
+
+</td>
+<td width="50%" valign="top">
+
+### ◳ Derive
+
+A **guided geometric derivation**, step by step. The element
+is built edge by edge and each one appears **labeled with its
+length** ( $dr$, $r\,d\theta$, $r\sin\theta\,d\phi$ ) anchored in 3D space.
+
+Ideal for helping students understand *where each factor of the
+Jacobian comes from*, rather than just memorizing it.
+
+</td>
+</tr>
+</table>
+
+![Derive mode](docs/derivation.png)
+
+<br>
+
+## Features
+
+| | |
+|---|---|
+| **Sweeping element** | The differential traverses the region according to the active variables: point → curve → surface → solid. |
+| **Color-coded decomposition** | Each coordinate has its own color (radial, polar, azimuthal), consistent across the formula, sliders, and 3D figure. |
+| **Slider per variable** | A progress control for each integral; see how each one evolves and which zone contributes. |
+| **Differential term by term** | Each factor is the physical arc length of the real arc, in LaTeX (KaTeX). |
+| **Accumulated integral** | Live value with progress bar — length, area, or volume; or $\int f$, flux, and circulation. |
+| **Four coordinate systems** | Cartesian, **polar (2D)**, cylindrical, and spherical, each with its correct Jacobian. |
+| **Curvilinear coordinates** | Define your own mapping $(u,v,w)\to(x,y,z)$ and watch the Jacobian emerge (with tutorial). |
+| **Three ways to define the region** | Preset library · manual limits with expressions · **inequalities** that deduce the bounds. |
+| **Full integrand** | Geometric ($1$), scalar field $f$, and vector field $\vec{F}$ with flux $\iint \vec{F}\cdot d\vec{S}$ and circulation $\oint \vec{F}\cdot d\vec{l}$. |
+| **Designed for teaching** | Quick start on launch, persistent guide, and guided **Derive** mode. |
+| **Built for sharing** | State serialized in the URL, **PNG** and **GIF** export of the sweep. |
+| **Web + desktop** | Runs in the browser (GitHub Pages) and as a desktop app (Electron). |
+
+<br>
+
+## The math
+
+Each coordinate system contributes its own scale factor. In Parcella, **each factor is the physical arc
+length** that the element travels when varying that coordinate — that is why their product is the
+Jacobian:
+
+| System | Element |
+|---|:---|
+| Cartesian | $dV = dx\,dy\,dz$ |
+| Polar (2D) | $dA = r\,dr\,d\phi$ |
+| Cylindrical | $dV = \rho\,d\rho\,d\phi\,dz$ |
+| Spherical | $dV = r^2\sin\theta\;dr\,d\theta\,d\phi \;=\; \underbrace{dr}_{r}\cdot\underbrace{r\,d\theta}_{\theta}\cdot\underbrace{r\sin\theta\,d\phi}_{\phi}$ |
+
+> Spherical convention (physics / ISO): polar $\theta \in[0,\pi]$ from the $+z$ axis, azimuthal $\phi \in[0,2\pi)$ in the $xy$ plane.
+> Freezing a variable reduces the element's dimension: $dV \to dS \to dl$.
+
+The engine is **validated with SymPy** (Jacobians, scale factors, and volumes of the presets) and
+covered by **463 tests** (Vitest).
+
+<br>
+
+## Architecture
+
+Strict separation between the **engine** and the **interface**, with a clear dependency rule:
+`ui/` and `render/` depend on `core/`, **never the other way around**.
+
+<details>
+<summary><b>View <code>src/</code> structure</b></summary>
 
 ```
 src/
-  core/
-    types.ts          # shared types
-    parser.ts         # mathjs with coordinate system variable names
-    coords.ts         # coordinate systems: (u,v,w)→(x,y,z) mapping, scale factors, jacobian
-    region.ts         # region = system + 3 variables with bounds
-    library.ts        # 12 region presets
-    inequalities.ts   # inequalities → deduce bounds (Phase 2)
-    differential.ts   # swept geometry + KaTeX expression + measure
-    fields.ts         # scalar/vector field; flux F·dS, circulation F·dl
-    integrate.ts      # cumulative numerical integration
-    state.ts          # serializable state (URL)
-  render/             # Three.js
-    scene.ts          # scene, camera, lights, axes, grid
-    elementMesh.ts    # highlighted differential element
-    sweepMesh.ts      # incremental swept geometry
-    coordGrid.ts      # coordinate iso-surfaces
-    fieldViz.ts       # scalar as color; vector as arrows
-  ui/                 # DOM + KaTeX
-    controlPanel.ts   # system · region · integrand · order · toggles + sliders
-    equationView.ts   # live KaTeX (differential + integral + accumulated value)
-    transportBar.ts   # play/pause/speed
-    tutorial.ts       # onboarding
-  services/
-    share.ts          # serialize/deserialize state to/from URL
-    exporter.ts       # PNG export
-  app.ts              # orchestrates ui ↔ core ↔ render
-  main.ts
-  style.css
-electron/             # desktop app (macOS · Windows · Linux)
+  core/                  # PURE mathematical engine (no DOM, no Three.js) — 100% testable
+    coords      ·  coordinate systems: cartesian, polar, cylindrical, spherical, curvilinear
+    region      ·  region = system + 3 variables with bounds (constants or dependent)
+    library     ·  presets (ball, spherical cap, cylinder, cone, torus, paraboloid, disk…)
+    inequalities·  inequalities → deduces the bounds
+    differential·  swept geometry + differential expression term by term
+    fields      ·  scalar field f and vector field F (flux, circulation)
+    integrate   ·  cumulative numerical integration
+    derivation  ·  lessons for the guided derivation (generated from scale factors)
+    colors · format · parser · state
+  render/                # Three.js: scene, element, sweep, coordinate grid, fields, 3D labels
+  ui/                    # DOM + KaTeX: panel, equations, transport, derivation, tutorial, curvilinear
+  services/              # URL sharing, PNG export, GIF recording
+  app.ts                 # orchestrates ui ↔ core ↔ render
+electron/                # desktop app (mac · win · linux)
 ```
 
-The engine (`core/`) is validated against **SymPy** (jacobians, scale factors, closed-form integrals for all presets) and has **~300 tests** run with Vitest.
+</details>
 
----
+<br>
 
-## 🚀 Development
+## Development
 
 ```bash
-npm install        # install dependencies
-
-npm run dev        # development server (Vite, HMR)
-npm run build      # TypeScript check + production bundle
-npm test           # run tests (Vitest)
-
-npm run app        # build + launch Electron app
-npm run dist:mac   # package for macOS (.dmg, .zip)
-npm run dist:win   # package for Windows (.exe, portable)
-npm run dist:linux # package for Linux (.AppImage, .deb)
+npm install
+npm run dev        # development server (Vite)
+npm run build      # type-check + production build
+npm test           # test suite (Vitest)
+npm run app        # desktop app (Electron)
+npm run dist:mac   # package — also :win and :linux
 ```
 
----
+**Stack:** TypeScript · Vite · Three.js · KaTeX · math.js · Vitest · Electron.
 
-## 📐 The math
-
-The volume differential element varies by coordinate system:
-
-| System | `dV` |
-|---|---|
-| Cartesian | `dx dy dz` |
-| Cylindrical | `ρ dρ dφ dz` |
-| Spherical | `r² sinφ dr dθ dφ` |
-
-> Spherical convention used: `θ` is the **azimuthal** angle `∈ [0, 2π)` and `φ` is the **polar** angle from `+z`, `∈ [0, π]`.
-
-The core idea of Parcella is that **freezing a variable reduces the dimension of the element**:
-
-- All 3 active → `dV` (solid).
-- 2 active, 1 frozen → `dS` (surface patch).
-- 1 active, 2 frozen → `dl` (curve segment).
-
-Choosing which variables to integrate and which to freeze is, literally, choosing which part of the region gets accumulated.
+<br>
 
 ---
 
-## License
+<div align="center">
 
-MIT — see [LICENSE](LICENSE).
+Made by **José Labarca** — sibling of [Curvana](https://github.com/kegouro/curvana).
+[MIT](LICENSE) license.
 
-Made by **José Labarca** · sibling of [Curvana](https://github.com/kegouro/curvana).
+</div>

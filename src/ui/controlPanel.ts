@@ -50,6 +50,16 @@ function uid(): string {
 // Regiones por defecto sensatas para cada sistema al cambiar
 function defaultRegionForSystem(sysId: SystemId): Region {
   switch (sysId) {
+    case 'polar':
+      return {
+        system: 'polar',
+        order: [0, 1, 2],
+        bounds: [
+          { lower: 0, upper: 1 },
+          { lower: 0, upper: '2 * pi' },
+          { lower: 0, upper: 0 },   // z fijo en 0 (plano)
+        ],
+      };
     case 'cylindrical':
       return {
         system: 'cylindrical',
@@ -83,6 +93,13 @@ function defaultRegionForSystem(sysId: SystemId): Region {
   }
 }
 
+/** Devuelve el sweep.active con la 3ª var bloqueada a false si el sistema es planar. */
+function defaultActiveForSystem(sysId: SystemId): [boolean, boolean, boolean] {
+  const sys = getSystem(sysId);
+  if (sys.planar) return [true, true, false];
+  return [true, true, true];
+}
+
 // ---------------------------------------------------------------------------
 // Factory principal
 // ---------------------------------------------------------------------------
@@ -110,6 +127,7 @@ export function createControlPanel(
 
   const systemOpts: Array<{ id: SystemId; label: string; disabled?: boolean }> = [
     { id: 'cartesian', label: 'Cartesianas' },
+    { id: 'polar', label: 'Polares (2D)' },
     { id: 'cylindrical', label: 'Cilíndricas' },
     { id: 'spherical', label: 'Esféricas' },
     { id: 'curvilinear', label: 'Curvilíneas — Fase 2', disabled: true },
@@ -140,12 +158,13 @@ export function createControlPanel(
       return;
     }
     const newRegion = defaultRegionForSystem(newSysId);
+    const newActive = defaultActiveForSystem(newSysId);
     const newState: AppState = {
       ...state,
       region: newRegion,
       sweep: {
-        active: [true, true, true],
-        frozen: [0.5, 0.5, 0.5],
+        active: newActive,
+        frozen: [0.5, 0.5, 0],
         progress: [1, 1, 1],
       },
     };
@@ -336,6 +355,7 @@ export function createControlPanel(
   } {
     varsContainer.innerHTML = '';
     const sys = getSystem(s.region.system);
+    const isPlanar = sys.planar === true;
     const rows: Array<{
       toggleInput: HTMLInputElement;
       slider: HTMLInputElement;
@@ -343,7 +363,10 @@ export function createControlPanel(
 
     for (let c = 0; c < 3; c++) {
       const varSpec = sys.vars[c];
-      const row = el('div', 'pc-var-row');
+      // In planar systems the 3rd variable (index 2) is always locked OFF
+      const isPlanarLocked = isPlanar && c === 2;
+
+      const row = el('div', isPlanarLocked ? 'pc-var-row pc-var-row--locked' : 'pc-var-row');
 
       // LaTeX label
       const latexSpan = renderLatex(varSpec.latex);
@@ -354,7 +377,8 @@ export function createControlPanel(
       const toggleInput = el('input', 'pc-toggle');
       toggleInput.type = 'checkbox';
       toggleInput.id = toggleId;
-      toggleInput.checked = s.sweep.active[c];
+      toggleInput.checked = isPlanarLocked ? false : s.sweep.active[c];
+      toggleInput.disabled = isPlanarLocked;
       const toggleLabel = label('Integrar', toggleId);
       toggleLabel.className = 'pc-toggle-label';
 
@@ -367,37 +391,47 @@ export function createControlPanel(
       sliderInput.max = '1';
       sliderInput.step = '0.01';
       sliderInput.value = String(s.sweep.frozen[c]);
-      sliderInput.disabled = s.sweep.active[c];
+      // Slider disabled if: active OR planar-locked
+      sliderInput.disabled = isPlanarLocked ? true : s.sweep.active[c];
       const sliderLabel = label('Posición:', sliderId);
       sliderLabel.className = 'pc-small';
 
+      // Optional planar note for locked var
       const sliderRow = el('div', 'pc-slider-row');
       sliderRow.appendChild(sliderLabel);
-      sliderRow.appendChild(sliderInput);
+      if (isPlanarLocked) {
+        const note = el('span', 'pc-planar-note');
+        note.textContent = '(plano z=0)';
+        sliderRow.appendChild(note);
+      } else {
+        sliderRow.appendChild(sliderInput);
+      }
 
       rows.push({ toggleInput, slider: sliderInput });
 
       const idx = c;
-      toggleInput.addEventListener('change', () => {
-        const newActive = [...state.sweep.active] as [boolean, boolean, boolean];
-        newActive[idx] = toggleInput.checked;
-        sliderInput.disabled = toggleInput.checked;
-        const newState: AppState = {
-          ...state,
-          sweep: { ...state.sweep, active: newActive },
-        };
-        handlers.onChange(newState);
-      });
+      if (!isPlanarLocked) {
+        toggleInput.addEventListener('change', () => {
+          const newActive = [...state.sweep.active] as [boolean, boolean, boolean];
+          newActive[idx] = toggleInput.checked;
+          sliderInput.disabled = toggleInput.checked;
+          const newState: AppState = {
+            ...state,
+            sweep: { ...state.sweep, active: newActive },
+          };
+          handlers.onChange(newState);
+        });
 
-      sliderInput.addEventListener('input', () => {
-        const newFrozen = [...state.sweep.frozen] as [number, number, number];
-        newFrozen[idx] = parseFloat(sliderInput.value);
-        const newState: AppState = {
-          ...state,
-          sweep: { ...state.sweep, frozen: newFrozen },
-        };
-        handlers.onChange(newState);
-      });
+        sliderInput.addEventListener('input', () => {
+          const newFrozen = [...state.sweep.frozen] as [number, number, number];
+          newFrozen[idx] = parseFloat(sliderInput.value);
+          const newState: AppState = {
+            ...state,
+            sweep: { ...state.sweep, frozen: newFrozen },
+          };
+          handlers.onChange(newState);
+        });
+      }
 
       row.appendChild(latexSpan);
       row.appendChild(toggleInput);
@@ -408,10 +442,14 @@ export function createControlPanel(
 
     return {
       update(s2: AppState) {
+        const sys2 = getSystem(s2.region.system);
+        const planar2 = sys2.planar === true;
         for (let c = 0; c < 3; c++) {
-          rows[c].toggleInput.checked = s2.sweep.active[c];
+          const locked = planar2 && c === 2;
+          rows[c].toggleInput.checked = locked ? false : s2.sweep.active[c];
+          rows[c].toggleInput.disabled = locked;
           rows[c].slider.value = String(s2.sweep.frozen[c]);
-          rows[c].slider.disabled = s2.sweep.active[c];
+          rows[c].slider.disabled = locked ? true : s2.sweep.active[c];
         }
       },
     };
@@ -893,6 +931,21 @@ function injectStyles(): void {
     .pc-slider:disabled {
       opacity: 0.3;
       cursor: not-allowed;
+    }
+    .pc-var-row--locked {
+      opacity: 0.45;
+    }
+    .pc-var-row--locked .pc-toggle {
+      cursor: not-allowed;
+    }
+    .pc-var-row--locked .pc-toggle-label {
+      cursor: not-allowed;
+      color: #606080;
+    }
+    .pc-planar-note {
+      color: #6060a0;
+      font-size: 11px;
+      font-style: italic;
     }
     .pc-radio-group {
       display: flex;

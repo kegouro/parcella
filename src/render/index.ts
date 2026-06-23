@@ -6,7 +6,8 @@
  */
 
 import * as THREE from 'three';
-import type { AppState } from '../core/types.js';
+import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import type { AppState, Vec3 } from '../core/types.js';
 import { getSystem } from '../core/coords.js';
 import { sweptSamples, elementCell } from '../core/differential.js';
 
@@ -45,6 +46,19 @@ export interface Viewer {
 
   /** Libera todos los recursos Three.js y detiene el render loop. */
   dispose(): void;
+
+  /**
+   * Coloca rótulos de texto/HTML anclados a puntos 3D mediante CSS2DRenderer.
+   *
+   * - Cada entrada posiciona un `CSS2DObject` en `position` (coordenadas del mundo).
+   *   `html` es HTML listo (puede contener KaTeX renderizado); se inserta como
+   *   innerHTML de un `<div class="r-label">`.
+   * - `setLabels([])` elimina todos los rótulos actuales.
+   * - Llamar `setLabels` reemplaza los rótulos anteriores por completo.
+   * - `update()` NO borra los rótulos; el dueño (app/ui) debe llamar
+   *   `setLabels([])` o `setLabels(nuevos)` cuando corresponda.
+   */
+  setLabels(labels: { position: Vec3; html: string }[]): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +81,9 @@ export function createViewer(container: HTMLElement): Viewer {
 
   // Estado más reciente (para setProgress)
   let lastState: AppState | null = null;
+
+  // CSS2DObjects actuales para rótulos (setLabels)
+  let labelObjects: CSS2DObject[] = [];
 
   // -------------------------------------------------------------------------
   // update — reconstruye todo
@@ -147,6 +164,34 @@ export function createViewer(container: HTMLElement): Viewer {
   }
 
   // -------------------------------------------------------------------------
+  // setLabels — rótulos HTML anclados a puntos 3D
+  // -------------------------------------------------------------------------
+
+  function setLabels(labels: { position: Vec3; html: string }[]): void {
+    // Eliminar rótulos anteriores de la escena
+    for (const obj of labelObjects) {
+      ctx.scene.remove(obj);
+      // CSS2DObject no tiene geometría/material que liberar, pero limpiamos el DOM
+      if (obj.element.parentElement) {
+        obj.element.parentElement.removeChild(obj.element);
+      }
+    }
+    labelObjects = [];
+
+    // Crear los nuevos rótulos
+    for (const { position, html } of labels) {
+      const div = document.createElement('div');
+      div.className = 'r-label';
+      div.innerHTML = html;
+
+      const label = new CSS2DObject(div);
+      label.position.set(position[0], position[1], position[2]);
+      ctx.scene.add(label);
+      labelObjects.push(label);
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // resize / toDataURL / dispose
   // -------------------------------------------------------------------------
 
@@ -161,6 +206,7 @@ export function createViewer(container: HTMLElement): Viewer {
   }
 
   function dispose(): void {
+    setLabels([]); // limpiar CSS2DObjects antes de disponer la escena
     _clearScene();
     ctx.dispose();
   }
@@ -208,5 +254,5 @@ export function createViewer(container: HTMLElement): Viewer {
     }
   }
 
-  return { update, setProgress, resize, toDataURL, dispose };
+  return { update, setProgress, resize, toDataURL, dispose, setLabels };
 }

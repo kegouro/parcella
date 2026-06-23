@@ -1,31 +1,54 @@
 /**
- * tutorial.ts — Modal/panel de mini-guía de Parcella.
- * Explica en español: diferencial, congelar vs integrar, coordenadas curvilíneas (Fase 2).
+ * tutorial.ts — Modal de guía completa y pantalla de bienvenida de Parcella.
+ * Explica en español qué hace la app, el elemento diferencial, sistemas de coordenadas y modos.
  */
 
-export function createTutorial(container: HTMLElement): { open(): void; close(): void } {
+// ---------------------------------------------------------------------------
+// localStorage helpers (exportados para que app.ts los use)
+// ---------------------------------------------------------------------------
+
+const WELCOME_KEY = 'parcella.welcomeSeen';
+
+export function hasSeenWelcome(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(WELCOME_KEY) === 'true';
+}
+
+export function markWelcomeSeen(): void {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(WELCOME_KEY, 'true');
+}
+
+// ---------------------------------------------------------------------------
+// Factory principal
+// ---------------------------------------------------------------------------
+
+export function createTutorial(container: HTMLElement): {
+  open(): void;
+  close(): void;
+  openWelcome(): void;
+} {
   injectStyles();
 
-  // Backdrop
+  // ---- Backdrop compartido ----
   const backdrop = document.createElement('div');
   backdrop.className = 'tut-backdrop';
   backdrop.setAttribute('aria-hidden', 'true');
   document.body.appendChild(backdrop);
 
-  // Modal
+  // ====================== MODAL GUÍA COMPLETA ======================
   const modal = document.createElement('div');
   modal.className = 'tut-modal';
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
   modal.setAttribute('aria-labelledby', 'tut-title');
 
-  // Header
   const header = document.createElement('div');
   header.className = 'tut-header';
   const title = document.createElement('h2');
   title.id = 'tut-title';
   title.className = 'tut-title';
-  title.textContent = 'Guía rápida — Parcella';
+  title.textContent = 'Guía completa — Parcella';
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tut-close';
   closeBtn.type = 'button';
@@ -35,126 +58,294 @@ export function createTutorial(container: HTMLElement): { open(): void; close():
   header.appendChild(closeBtn);
   modal.appendChild(header);
 
-  // Body
   const body = document.createElement('div');
   body.className = 'tut-body';
-  body.innerHTML = buildContent();
+  body.innerHTML = buildFullContent();
   modal.appendChild(body);
 
   container.appendChild(modal);
 
-  // Events
+  // ====================== MODAL INICIO RÁPIDO ======================
+  const welcome = document.createElement('div');
+  welcome.className = 'tut-modal tut-welcome';
+  welcome.setAttribute('role', 'dialog');
+  welcome.setAttribute('aria-modal', 'true');
+  welcome.setAttribute('aria-labelledby', 'tut-welcome-title');
+
+  const welcomeBody = document.createElement('div');
+  welcomeBody.className = 'tut-body';
+  welcomeBody.innerHTML = buildWelcomeContent();
+  welcome.appendChild(welcomeBody);
+
+  container.appendChild(welcome);
+
+  // ====================== EVENTOS ======================
   closeBtn.addEventListener('click', close);
   backdrop.addEventListener('click', close);
+
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape') close();
   });
 
+  // Botón "Empezar" en welcome
+  welcomeBody.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+
+    if (target.closest('[data-action="start"]')) {
+      const checkbox = welcomeBody.querySelector<HTMLInputElement>('#tut-noshowinput');
+      if (checkbox?.checked) markWelcomeSeen();
+      closeWelcome();
+    }
+
+    if (target.closest('[data-action="full-guide"]')) {
+      const checkbox = welcomeBody.querySelector<HTMLInputElement>('#tut-noshowinput');
+      if (checkbox?.checked) markWelcomeSeen();
+      closeWelcome();
+      open();
+    }
+  });
+
+  // ====================== FUNCIONES ======================
   function open(): void {
     backdrop.classList.add('tut-visible');
     modal.classList.add('tut-visible');
+    welcome.classList.remove('tut-visible');
     closeBtn.focus();
   }
 
   function close(): void {
     backdrop.classList.remove('tut-visible');
     modal.classList.remove('tut-visible');
+    welcome.classList.remove('tut-visible');
   }
 
-  return { open, close };
+  function closeWelcome(): void {
+    backdrop.classList.remove('tut-visible');
+    welcome.classList.remove('tut-visible');
+  }
+
+  function openWelcome(): void {
+    backdrop.classList.add('tut-visible');
+    welcome.classList.add('tut-visible');
+    modal.classList.remove('tut-visible');
+    const startBtn = welcomeBody.querySelector<HTMLButtonElement>('[data-action="start"]');
+    startBtn?.focus();
+  }
+
+  return { open, close, openWelcome };
 }
 
 // ---------------------------------------------------------------------------
-// Content (static HTML — no user data, safe innerHTML)
+// Contenido: GUÍA COMPLETA
 // ---------------------------------------------------------------------------
 
-function buildContent(): string {
+function buildFullContent(): string {
   return `
 <section class="tut-section">
-  <h3 class="tut-heading">¿Qué es el elemento diferencial?</h3>
+  <h3 class="tut-heading">1 · ¿Qué es Parcella?</h3>
   <p>
-    El <strong>elemento diferencial</strong> (d<em>l</em>, d<em>S</em>, d<em>V</em>) es la
-    unidad infinitesimal de longitud, área o volumen según el número de variables que se integran.
-    En Parcella lo llamas <em>la parcella</em>: el pequeño trozo de geometría que barre el espacio.
+    <strong>Parcella</strong> es un visualizador interactivo de <em>diferenciales geométricos</em>
+    e integrales múltiples. Su nombre viene de la palabra italiana/latina para "pequeño trozo":
+    la app te permite ver y manipular el elemento diferencial —ese pequeño trozo de línea, área
+    o volumen— antes y mientras se integra.
+  </p>
+  <p>
+    Úsala para entender intuitivamente:
   </p>
   <ul>
-    <li><strong>0 variables activas →</strong> punto (no mide nada).</li>
-    <li><strong>1 variable activa →</strong> curva; mide <em>dl</em> (longitud).</li>
-    <li><strong>2 variables activas →</strong> parche de superficie; mide <em>dS</em> (área).</li>
-    <li><strong>3 variables activas →</strong> sólido; mide <em>dV</em> (volumen).</li>
+    <li>Por qué <em>dA = r dr dφ</em> y no simplemente <em>dr dφ</em>.</li>
+    <li>Qué significa "integrar sobre un disco" en polares frente a cartesianas.</li>
+    <li>Cómo cambia el elemento de volumen entre sistemas de coordenadas.</li>
+    <li>La relación visual entre región, orden de integración y barrido.</li>
+  </ul>
+</section>
+
+<section class="tut-section">
+  <h3 class="tut-heading">2 · El elemento diferencial ("la parcella")</h3>
+  <p>
+    El <strong>elemento diferencial</strong> es el objeto infinitesimal que la integral acumula.
+    Dependiendo de cuántas variables se integran, ese objeto tiene distinta dimensión:
+  </p>
+  <ul>
+    <li><strong>0 variables activas →</strong> un punto en el espacio (sin medida).</li>
+    <li><strong>1 variable activa →</strong> una curva infinitesimal; mide longitud (<em>dl</em>).</li>
+    <li><strong>2 variables activas →</strong> un parche de superficie; mide área (<em>dS</em>).</li>
+    <li><strong>3 variables activas →</strong> un ladrillo de volumen; mide volumen (<em>dV</em>).</li>
   </ul>
   <p>
-    El diferencial incluye los <strong>factores de escala de Lamé</strong> (h<sub>i</sub>), que
-    corrigen la geometría del sistema de coordenadas. Por ejemplo, en cilíndricas el factor de
-    d<em>φ</em> es ρ·dφ (un arco, no solo un ángulo).
+    En la vista 3D verás este trozo resaltado (la parcella) junto al resto de la región
+    ya barrida, para que puedas seguir cómo se construye la integral paso a paso.
   </p>
 </section>
 
 <section class="tut-section">
-  <h3 class="tut-heading">Colores: activo vs congelado</h3>
+  <h3 class="tut-heading">3 · Integrar vs congelar una variable</h3>
   <p>
-    Cada factor del diferencial aparece en uno de dos estados:
+    Cada variable del sistema de coordenadas puede estar en uno de dos estados:
   </p>
   <ul>
     <li>
-      <span class="tut-badge tut-badge--active">índigo</span>
-      <strong>Activo</strong>: la variable se integra sobre su rango. Contribuye a la medida
-      del elemento (dl, dS, dV).
+      <span class="tut-badge tut-badge--active">activa / integrar</span>
+      La variable <strong>barre su rango</strong> completo (de límite inferior a superior).
+      Contribuye a la dimensión del elemento diferencial: sube de punto a curva, a superficie, a volumen.
     </li>
     <li>
-      <span class="tut-badge tut-badge--frozen">gris</span>
-      <strong>Congelado</strong>: la variable está fijada en un valor puntual controlado
-      por el slider. No se integra, pero posiciona la parcella en el espacio.
+      <span class="tut-badge tut-badge--frozen">congelada / fijar</span>
+      La variable <strong>se queda fija</strong> en el valor del slider correspondiente.
+      Posiciona la parcella en el espacio pero no añade dimensión.
     </li>
   </ul>
   <p>
-    Puedes <strong>animar</strong> el barrido con la barra de transporte inferior: el slider
-    de progreso mueve la parcella a lo largo de las variables activas y la vista de ecuaciones
-    muestra el valor acumulado en tiempo real.
+    <strong>Ejemplo en esféricas:</strong> si activas θ y r (pero congelas φ),
+    obtienes un arco de anillo plano (2D); si además activas φ, obtienes la esfera completa (3D).
   </p>
 </section>
 
 <section class="tut-section">
-  <h3 class="tut-heading">Orden de integración</h3>
+  <h3 class="tut-heading">4 · El diferencial término a término (factores de escala)</h3>
   <p>
-    En una integral múltiple se integra variable a variable (Fubini). El <strong>orden</strong>
-    determina qué variable es la más interna (se integra primero, con límites potencialmente
-    dependientes de las demás) y cuál es la más externa (límites siempre constantes).
+    En coordenadas curvilíneas, el diferencial físico de cada variable no es solo
+    <em>d(var)</em>: hay que multiplicar por el <strong>factor de escala de Lamé</strong>
+    (<em>h<sub>i</sub></em>), que convierte el incremento de coordenada en longitud real de arco.
   </p>
+  <ul>
+    <li>Cartesianas: <em>h = 1</em> para todas → <em>dV = dx dy dz</em>.</li>
+    <li>Polares 2D: <em>h<sub>φ</sub> = r</em> → <em>dA = r dr dφ</em>. El arco de un ángulo <em>dφ</em> a distancia <em>r</em> mide <em>r dφ</em>.</li>
+    <li>Cilíndricas: <em>h<sub>φ</sub> = ρ</em> → <em>dV = ρ dρ dφ dz</em>.</li>
+    <li>Esféricas: <em>h<sub>θ</sub> = r sinφ</em>, <em>h<sub>φ</sub> = r</em> → <em>dV = r² sinφ dr dθ dφ</em>.</li>
+  </ul>
   <p>
-    Cambia el orden en la sección <em>"Orden de integración"</em> del panel de control.
-    El valor numérico de la integral no cambia (Fubini), pero la visualización del barrido sí.
+    En la ecuación del panel verás cada factor resaltado por separado, y se ilumina
+    el que corresponde a la variable que el barrido está recorriendo en ese instante.
   </p>
 </section>
 
 <section class="tut-section">
-  <h3 class="tut-heading">Sistemas de coordenadas</h3>
+  <h3 class="tut-heading">5 · La integral acumulada y la barra de progreso</h3>
+  <p>
+    La <strong>barra de progreso</strong> (panel inferior) controla el avance del barrido:
+    a medida que la mueves, la parcella recorre la región y el valor de la integral parcial
+    se actualiza en tiempo real.
+  </p>
+  <p>
+    El número mostrado es <em>∫∫…∫ f dV</em> evaluado hasta el punto actual del barrido.
+    Si el integrando es <em>1</em> (modo geométrico), obtienes la medida acumulada
+    (longitud / área / volumen) de la región ya recorrida.
+  </p>
+</section>
+
+<section class="tut-section">
+  <h3 class="tut-heading">6 · Sistemas de coordenadas</h3>
   <dl class="tut-dl">
     <dt>Cartesianas (x, y, z)</dt>
-    <dd>Los factores de escala son todos 1. dV = dx dy dz.</dd>
+    <dd>Factores de escala todos 1. <em>dV = dx dy dz</em>. Ideal para cubos, paralelepípedos, regiones rectangulares.</dd>
+
+    <dt>Polares (r, φ) — sistema planar</dt>
+    <dd>
+      2D en el plano z = 0. <em>r ≥ 0</em>, <em>φ ∈ [0, 2π)</em>.
+      Elemento de área: <em>dA = r dr dφ</em>.
+      La tercera variable (z) está bloqueada; no se puede integrar en este modo.
+    </dd>
 
     <dt>Cilíndricas (ρ, φ, z)</dt>
-    <dd>Factor de escala para φ: ρ. dV = ρ dρ dφ dz.</dd>
+    <dd>
+      <em>ρ ≥ 0</em>, <em>φ ∈ [0, 2π)</em>, z libre.
+      Factor de escala en φ: <em>ρ</em>. <em>dV = ρ dρ dφ dz</em>.
+    </dd>
 
     <dt>Esféricas (r, θ, φ)</dt>
     <dd>
-      θ es el ángulo azimutal (0…2π); φ es el ángulo polar desde +z (0…π).
-      dV = r² sin φ dr dθ dφ.
+      <em>θ</em> es el ángulo <strong>azimutal</strong> (horizontal, 0…2π);
+      <em>φ</em> es el ángulo <strong>polar</strong> medido desde +z (0…π).
+      <em>dV = r² sinφ dr dθ dφ</em>.
     </dd>
+
+    <dt>Curvilíneas — Fase 2 🚧</dt>
+    <dd>Define tu propio mapeo x(u,v,w), y(u,v,w), z(u,v,w). Los factores de Lamé se calculan automáticamente.</dd>
   </dl>
 </section>
 
-<section class="tut-section tut-phase2">
-  <h3 class="tut-heading">Coordenadas curvilíneas — Fase 2 🚧</h3>
-  <p>
-    En Fase 2 podrás definir tu propio sistema de coordenadas mediante expresiones
-    x(u,v,w), y(u,v,w), z(u,v,w). Los factores de escala se calcularán automáticamente
-    por diferencias finitas (método de Lamé numérico).
-  </p>
-  <p>
-    Esta función aún no está disponible en la versión actual.
-  </p>
+<section class="tut-section">
+  <h3 class="tut-heading">7 · Modos: Explorar y Derivar</h3>
+  <ul>
+    <li>
+      <strong>Explorar</strong> (modo libre): manipula variables, sistemas, regiones e integrando
+      a tu ritmo. Ves el elemento diferencial y la integral en tiempo real sin pasos guiados.
+    </li>
+    <li>
+      <strong>Derivar</strong> (guiado, Fase 2): la app te lleva paso a paso por la construcción
+      del diferencial de volumen: primero el factor de cada variable, luego el jacobiano,
+      finalmente la integral. Pensado para estudio formal.
+    </li>
+  </ul>
 </section>
+
+<section class="tut-section">
+  <h3 class="tut-heading">8 · Región e integrando</h3>
+  <p><strong>Región</strong>: el dominio de integración. Puedes definirla de dos formas:</p>
+  <ul>
+    <li><em>Biblioteca</em>: presets predefinidos (disco, esfera, cubo, cono, etc.) agrupados por sistema.</li>
+    <li><em>Manual</em>: edita directamente los límites inferior y superior de cada variable.
+        Los límites pueden ser expresiones mathjs que dependan de variables externas
+        (p. ej. <code>sqrt(1 - x^2)</code>).</li>
+  </ul>
+  <p><strong>Integrando</strong>: qué se suma en cada elemento diferencial:</p>
+  <ul>
+    <li><em>1 (geométrico)</em>: mide la longitud / área / volumen puro de la región.</li>
+    <li><em>f escalar</em>: integra un campo escalar definido por expresión mathjs. Puedes usar las variables del sistema activo o x, y, z.</li>
+    <li><em>F vectorial</em> (Fase 2): flujo o circulación de un campo vectorial.</li>
+  </ul>
+</section>
+  `.trim();
+}
+
+// ---------------------------------------------------------------------------
+// Contenido: INICIO RÁPIDO (welcome)
+// ---------------------------------------------------------------------------
+
+function buildWelcomeContent(): string {
+  return `
+<div class="tut-welcome-inner">
+  <div class="tut-welcome-logo">∂</div>
+  <h2 id="tut-welcome-title" class="tut-welcome-title">Bienvenido a Parcella</h2>
+  <p class="tut-welcome-sub">
+    Visualiza y entiende los <strong>diferenciales geométricos</strong> e integrales múltiples
+    de forma interactiva.
+  </p>
+
+  <ul class="tut-welcome-list">
+    <li>
+      <span class="tut-welcome-icon">⬡</span>
+      <span>Observa el <strong>elemento diferencial</strong> (dl, dS, dV) moverse por la región y crecer en tiempo real.</span>
+    </li>
+    <li>
+      <span class="tut-welcome-icon">↕</span>
+      <span><strong>Integra o congela</strong> cada variable: decide qué dimensión tiene tu elemento y dónde se posiciona.</span>
+    </li>
+    <li>
+      <span class="tut-welcome-icon">⊙</span>
+      <span>Cambia entre <strong>cartesianas, polares, cilíndricas y esféricas</strong> y ve cómo cambia el diferencial.</span>
+    </li>
+    <li>
+      <span class="tut-welcome-icon">∫</span>
+      <span>Usa la <strong>barra de progreso</strong> para animar el barrido y ver la integral acumularse.</span>
+    </li>
+  </ul>
+
+  <div class="tut-welcome-actions">
+    <button class="tut-btn tut-btn--primary" type="button" data-action="start">
+      Empezar
+    </button>
+    <button class="tut-btn tut-btn--ghost" type="button" data-action="full-guide">
+      Ver guía completa
+    </button>
+  </div>
+
+  <label class="tut-noshow">
+    <input type="checkbox" id="tut-noshowinput" />
+    No volver a mostrar
+  </label>
+</div>
   `.trim();
 }
 
@@ -293,14 +484,110 @@ function injectStyles(): void {
       color: #8080b0;
       border: 1px solid rgba(255,255,255,0.12);
     }
-    .tut-phase2 {
-      background: rgba(124, 92, 255, 0.04);
-      border-radius: 6px;
-      border: 1px dashed #3d3d60 !important;
-      padding: 10px 12px !important;
+    /* ---- INICIO RÁPIDO ---- */
+    .tut-welcome {
+      width: min(480px, 95vw);
+      max-height: 90vh;
     }
-    .tut-phase2 .tut-heading {
-      color: #6b5ccc;
+    .tut-welcome-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 28px 24px;
+      gap: 16px;
+      text-align: center;
+    }
+    .tut-welcome-logo {
+      font-size: 48px;
+      color: #7c5cff;
+      line-height: 1;
+      font-weight: 300;
+    }
+    .tut-welcome-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: #e0e0f0;
+    }
+    .tut-welcome-sub {
+      margin: 0;
+      color: #a0a0c0;
+      font-size: 14px;
+      max-width: 340px;
+    }
+    .tut-welcome-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: left;
+    }
+    .tut-welcome-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: #c8c8e8;
+      font-size: 13px;
+      background: rgba(124, 92, 255, 0.06);
+      border: 1px solid rgba(124, 92, 255, 0.12);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .tut-welcome-icon {
+      color: #7c5cff;
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .tut-welcome-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .tut-btn {
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .tut-btn--primary {
+      background: #7c5cff;
+      color: white;
+      border-color: #7c5cff;
+    }
+    .tut-btn--primary:hover {
+      background: #6b4eee;
+    }
+    .tut-btn--ghost {
+      background: transparent;
+      color: #a78bff;
+      border-color: #3d3d60;
+    }
+    .tut-btn--ghost:hover {
+      border-color: #7c5cff;
+      color: #e0e0f0;
+    }
+    .tut-noshow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #6060a0;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tut-noshow input {
+      accent-color: #7c5cff;
+      cursor: pointer;
     }
   `;
   document.head.appendChild(style);

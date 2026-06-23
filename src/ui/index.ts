@@ -11,4 +11,7 @@ export { createEquationView } from './equationView.js';
 export { createTransportBar } from './transportBar.js';
 export type { TransportHandlers } from './transportBar.js';
 
-export { createTutorial } from './tutorial.js';
+export { createTutorial, hasSeenWelcome, markWelcomeSeen } from './tutorial.js';
+
+export { createDerivationMode } from './derivation.js';
+export type { ViewerLike } from './derivation.js';

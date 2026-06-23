@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 
 // ---------------------------------------------------------------------------
 // Constantes de estilo
@@ -27,6 +28,7 @@ export interface SceneContext {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
+  css2dRenderer: CSS2DRenderer;
   controls: OrbitControls;
   /** Llama dispose() para parar el loop y liberar recursos. */
   dispose(): void;
@@ -39,12 +41,25 @@ export interface SceneContext {
 // ---------------------------------------------------------------------------
 
 export function createScene(container: HTMLElement): SceneContext {
-  // --- Renderer ---
+  // --- Renderer WebGL ---
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(BG_COLOR, 1);
   renderer.shadowMap.enabled = false;
+  // El contenedor necesita position relative para que el overlay CSS2D se posicione correctamente
+  container.style.position = 'relative';
   container.appendChild(renderer.domElement);
+
+  // --- CSS2DRenderer (overlay para rótulos HTML anclados a puntos 3D) ---
+  const css2dRenderer = new CSS2DRenderer();
+  css2dRenderer.domElement.style.position = 'absolute';
+  css2dRenderer.domElement.style.top = '0';
+  css2dRenderer.domElement.style.left = '0';
+  css2dRenderer.domElement.style.pointerEvents = 'none';
+  container.appendChild(css2dRenderer.domElement);
+
+  // --- Inyectar estilos de .r-label (una sola vez) ---
+  _injectLabelStyles();
 
   // --- Escena ---
   const scene = new THREE.Scene();
@@ -93,6 +108,7 @@ export function createScene(container: HTMLElement): SceneContext {
     animFrameId = requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
+    css2dRenderer.render(scene, camera);
   }
 
   resize();
@@ -102,6 +118,7 @@ export function createScene(container: HTMLElement): SceneContext {
     const pw = container.clientWidth  || 400;
     const ph = container.clientHeight || 300;
     renderer.setSize(pw, ph);
+    css2dRenderer.setSize(pw, ph);
     camera.aspect = pw / ph;
     camera.updateProjectionMatrix();
   }
@@ -114,9 +131,12 @@ export function createScene(container: HTMLElement): SceneContext {
     if (renderer.domElement.parentElement) {
       renderer.domElement.parentElement.removeChild(renderer.domElement);
     }
+    if (css2dRenderer.domElement.parentElement) {
+      css2dRenderer.domElement.parentElement.removeChild(css2dRenderer.domElement);
+    }
   }
 
-  return { scene, camera, renderer, controls, dispose, resize };
+  return { scene, camera, renderer, css2dRenderer, controls, dispose, resize };
 }
 
 // ---------------------------------------------------------------------------
@@ -146,6 +166,34 @@ function _addAxes(scene: THREE.Scene) {
     sprite.scale.set(0.5, 0.25, 1);
     scene.add(sprite);
   }
+}
+
+/** Inyecta los estilos de .r-label en <head> (con guard para no duplicar). */
+function _injectLabelStyles(): void {
+  const STYLE_ID = 'parcella-r-label-styles';
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    .r-label {
+      display: inline-block;
+      padding: 2px 7px;
+      background: rgba(16, 19, 28, 0.78);
+      border: 1px solid #7c5cff;
+      border-radius: 4px;
+      color: #e0e4f4;
+      font-size: 11px;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      line-height: 1.5;
+      white-space: nowrap;
+      backdrop-filter: blur(2px);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.45);
+      pointer-events: none;
+      user-select: none;
+    }
+    .r-label .katex { font-size: 1em; }
+  `;
+  document.head.appendChild(style);
 }
 
 function _makeTextSprite(text: string, color: string): THREE.Sprite {

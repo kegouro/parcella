@@ -11,6 +11,8 @@ import {
   createEquationView,
   createTransportBar,
   createTutorial,
+  createDerivationMode,
+  hasSeenWelcome,
 } from './ui/index.js';
 import { loadStateFromUrl, syncUrl, copyShareLink } from './services/share.js';
 import { downloadDataUrl } from './services/exporter.js';
@@ -43,6 +45,18 @@ export function bootstrap(root: HTMLElement): void {
   const workspace = el('div', 'workspace');
   const panel = el('div', 'panel');
 
+  // Conmutador de modo (Explorar | Derivar) + contenedores de cada modo.
+  const modeBar = el('div', 'seg mode-bar');
+  modeBar.style.marginBottom = '14px';
+  const btnExplore = mkButton('', 'Explorar');
+  const btnDerive = mkButton('', 'Derivar');
+  btnExplore.classList.add('active');
+  modeBar.append(btnExplore, btnDerive);
+  const exploreWrap = el('div', 'mode-explore');
+  const deriveWrap = el('div', 'mode-derive');
+  deriveWrap.hidden = true;
+  panel.append(modeBar, exploreWrap, deriveWrap);
+
   const viewer = el('div', 'viewer');
   const viewerTop = el('div', 'viewer-top');
   const equations = el('div', 'equations');
@@ -72,9 +86,10 @@ export function bootstrap(root: HTMLElement): void {
   const view: Viewer = createViewer(viewport);
   const equationView = createEquationView(equations);
   const tutorial = createTutorial(document.body);
+  const derivation = createDerivationMode(deriveWrap, view);
 
   createControlPanel(
-    panel,
+    exploreWrap,
     {
       onChange(next) {
         // Cambio estructural: figura completa, animación detenida.
@@ -179,11 +194,38 @@ export function bootstrap(root: HTMLElement): void {
     }
   }
 
+  // --- Conmutador de modo Explorar / Derivar ---
+  function setMode(mode: 'explore' | 'derive'): void {
+    const derive = mode === 'derive';
+    btnExplore.classList.toggle('active', !derive);
+    btnDerive.classList.toggle('active', derive);
+    exploreWrap.hidden = derive;
+    deriveWrap.hidden = !derive;
+    equations.style.display = derive ? 'none' : '';
+    transport.style.display = derive ? 'none' : '';
+    if (derive) {
+      stop();
+      derivation.activate();
+    } else {
+      derivation.deactivate();
+      renderAll();
+    }
+  }
+  btnExplore.addEventListener('click', () => setMode('explore'));
+  btnDerive.addEventListener('click', () => setMode('derive'));
+
   // --- Resize ---
   window.addEventListener('resize', () => view.resize());
 
   // --- Arranque ---
   renderAll();
+
+  // Deep-link opcional: ?mode=derive abre directo la derivación guiada.
+  const modeParam = new URLSearchParams(window.location.search).get('mode');
+  if (modeParam === 'derive') setMode('derive');
+
+  // Inicio rápido la primera vez que se abre la app (no si se llegó por deep-link).
+  if (!hasSeenWelcome() && !modeParam) tutorial.openWelcome();
 }
 
 function mkButton(variant: string, label: string): HTMLButtonElement {

@@ -97,9 +97,7 @@ export function createViewer(container: HTMLElement): Viewer {
     lastState = state;
     _clearScene();
 
-    const system = getSystem(state.region.system);
-
-    // --- Grilla de coordenadas ---
+    // --- Grilla de coordenadas (no depende del progreso) ---
     try {
       coordGridGroup = buildCoordGrid(state);
       ctx.scene.add(coordGridGroup);
@@ -107,44 +105,41 @@ export function createViewer(container: HTMLElement): Viewer {
       // Región inválida: sin grilla
     }
 
+    // --- Barrido + elemento (dependen del progreso) ---
+    _buildSweepAndElement(state, 32);
+  }
+
+  /**
+   * (Re)construye el barrido y el elemento desde el estado dado, disponiendo los
+   * previos. NO toca la grilla de coordenadas. Lo usan update() y setProgress():
+   * por eso al darle play la REGIÓN se anima, no solo el trocito.
+   */
+  function _buildSweepAndElement(state: AppState, res = 24): void {
+    if (sweepResult) { disposeSweepMesh(sweepResult); ctx.scene.remove(sweepResult.group); sweepResult = null; }
+    if (elemResult) { disposeElementMesh(elemResult); ctx.scene.remove(elemResult.group); elemResult = null; }
+    if (vectorArrowGroup) { disposeVectorArrows(vectorArrowGroup, ctx.scene); vectorArrowGroup = null; }
+
+    const system = getSystem(state.region.system);
+
     // --- Barrido ---
     try {
-      const samples = sweptSamples(state.region, system, state.sweep, 32);
-
+      const samples = sweptSamples(state.region, system, state.sweep, res);
       sweepResult = buildSweepMesh(
-        samples.kind,
-        samples.point,
-        samples.curve,
-        samples.surface,
-        samples.solidFaces,
+        samples.kind, samples.point, samples.curve, samples.surface, samples.solidFaces,
         state.sweep.active,
       );
       ctx.scene.add(sweepResult.group);
 
-      // Colorización escalar (Fase 1)
-      if (
-        state.integrand.mode === 'scalar' &&
-        state.integrand.scalar &&
-        samples.kind === 'surface' &&
-        samples.surface
-      ) {
+      if (state.integrand.mode === 'scalar' && state.integrand.scalar && samples.kind === 'surface' && samples.surface) {
         _applyScalarColorsToSweep(state, samples.surface, sweepResult);
       }
-
-      // Flechas del campo vectorial (Fase 2)
       if (state.integrand.mode === 'vector') {
         const arrowSamples =
-          samples.kind === 'surface' && samples.surface
-            ? samples.surface
-            : samples.kind === 'curve' && samples.curve
-              ? samples.curve
-              : null;
-
+          samples.kind === 'surface' && samples.surface ? samples.surface
+          : samples.kind === 'curve' && samples.curve ? samples.curve : null;
         if (arrowSamples) {
           vectorArrowGroup = buildVectorArrows(state, arrowSamples);
-          if (vectorArrowGroup) {
-            ctx.scene.add(vectorArrowGroup);
-          }
+          if (vectorArrowGroup) ctx.scene.add(vectorArrowGroup);
         }
       }
     } catch {
@@ -166,23 +161,11 @@ export function createViewer(container: HTMLElement): Viewer {
   // -------------------------------------------------------------------------
 
   function setProgress(_p: number): void {
-    // En Fase 1 simplemente recalculamos solo el elemento diferencial.
-    // En Fase 2 se puede interpolar el progreso directamente en el sweep.
+    // Reconstruye barrido + elemento desde el estado actual (cuyo progress ya fue
+    // mutado por el dueño en app.ts). Así la región se ANIMA al darle play, no solo
+    // el trocito. Resolución algo menor para que la animación sea fluida.
     if (!lastState) return;
-
-    try {
-      if (elemResult) {
-        disposeElementMesh(elemResult);
-        ctx.scene.remove(elemResult.group);
-        elemResult = null;
-      }
-      const system = getSystem(lastState.region.system);
-      const cell = elementCell(lastState.region, system, lastState.sweep);
-      elemResult = buildElementMesh(cell.center, cell.edges, lastState.sweep.active);
-      ctx.scene.add(elemResult.group);
-    } catch {
-      // Posición inválida
-    }
+    _buildSweepAndElement(lastState, 22);
   }
 
   // -------------------------------------------------------------------------

@@ -71,7 +71,8 @@ export function buildElementMesh(
 
   switch (edges.length) {
     case 0:
-      group.add(_makePointElem(center));
+      // 0 variables activas → la posición ya la dibuja el barrido como un único
+      // punto. El elemento no dibuja nada aquí para no duplicar la esfera.
       break;
     case 1:
       group.add(..._makeSegment(center, edges[0], canonicalIdx[0]));
@@ -115,21 +116,6 @@ const _add = (a: THREE.Vector3, b: THREE.Vector3) => a.clone().add(b);
 
 function _edgeScaled(e: Vec3): THREE.Vector3 {
   return _v(e).multiplyScalar(ELEM_SCALE);
-}
-
-function _makePointElem(center: Vec3): THREE.Mesh {
-  const col = _hexNum(varColor(0));
-  const geo = new THREE.SphereGeometry(0.06, 16, 12);
-  const mat = new THREE.MeshStandardMaterial({
-    color: col,
-    emissive: col,
-    emissiveIntensity: 0.6,
-    roughness: 0.15,
-    metalness: 0.3,
-  });
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(...center);
-  return m;
 }
 
 /**

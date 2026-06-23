@@ -89,15 +89,20 @@ export function buildSweepMesh(
       break;
     }
     case 'solid':
-      // Sólido: color índigo neutro; las aristas del elemento ya distinguen variables
+      // Cada par de caras es perpendicular a una variable activa y se colorea con
+      // SU color → se ve el aporte de cada coordenada al volumen. El orden de
+      // solidFaces es [c0=0, c0=max, c1=0, c1=max, c2=0, c2=max], así que la cara
+      // k corresponde a la variable activeIdx[floor(k/2)].
       if (solidFaces) {
-        for (const face of solidFaces) {
+        solidFaces.forEach((face, k) => {
           if (face.length >= 2) {
-            const { mesh, wf } = _makeSurface(face, 0.25, INDIGO);
+            const vIdx = activeIdx[Math.floor(k / 2)] ?? 0;
+            const col = _hexNum(varColor(vIdx));
+            const { mesh, wf } = _makeSurface(face, 0.3, col);
             group.add(mesh);
             group.add(wf);
           }
-        }
+        });
       }
       break;
   }

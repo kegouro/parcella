@@ -45,15 +45,23 @@ describe('buildLesson (spherical)', () => {
     expect(symbols).toEqual(['point', 'dl', 'dS', 'dV']);
   });
 
-  it('el paso de θ (índice canónico 1) tiene lengthLatex correcto', () => {
+  it('el paso de θ (índice canónico 1, polar) tiene lengthLatex correcto', () => {
     // buildOrder esféricas: [0,1,2] → paso 2 (index=2) barre θ (var canónica 1)
+    // Nueva convención: θ polar → h_θ = r → arco = r dθ
     const thetaStep = lesson.steps.find((s) => s.sweepVar === 1);
     expect(thetaStep).toBeDefined();
-    expect(thetaStep!.lengthLatex).toBe('r\\sin\\phi\\,d\\theta');
+    expect(thetaStep!.lengthLatex).toBe('r\\,d\\theta');
   });
 
-  it('finalLatex contiene r^2\\sin\\phi', () => {
-    expect(lesson.finalLatex).toContain('r^2\\sin\\phi');
+  it('el paso de φ (índice canónico 2, azimutal) tiene lengthLatex correcto', () => {
+    // Nueva convención: φ azimutal → h_φ = r sinθ → arco = r sinθ dφ
+    const phiStep = lesson.steps.find((s) => s.sweepVar === 2);
+    expect(phiStep).toBeDefined();
+    expect(phiStep!.lengthLatex).toBe('r\\sin\\theta\\,d\\phi');
+  });
+
+  it('finalLatex contiene r^2\\sin\\theta', () => {
+    expect(lesson.finalLatex).toContain('r^2\\sin\\theta');
   });
 
   it('finalLatex empieza con "dV ="', () => {

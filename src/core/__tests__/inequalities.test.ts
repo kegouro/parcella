@@ -33,15 +33,15 @@ describe('Bola sólida R=1', () => {
     expect(evalB(b.lower)).toBeCloseTo(0);
     expect(evalB(b.upper)).toBeCloseTo(1);
   });
-  it('θ ∈ [0, 2π]', () => {
+  it('θ (polar) ∈ [0, π]', () => {
     const b = res.region!.bounds[1];
     expect(evalB(b.lower)).toBeCloseTo(0);
-    expect(evalB(b.upper)).toBeCloseTo(2 * Math.PI);
+    expect(evalB(b.upper)).toBeCloseTo(Math.PI);
   });
-  it('φ ∈ [0, π]', () => {
+  it('φ (azimutal) ∈ [0, 2π]', () => {
     const b = res.region!.bounds[2];
     expect(evalB(b.lower)).toBeCloseTo(0);
-    expect(evalB(b.upper)).toBeCloseTo(Math.PI);
+    expect(evalB(b.upper)).toBeCloseTo(2 * Math.PI);
   });
 });
 
@@ -56,8 +56,11 @@ describe('Bola sólida R=2', () => {
   it('r upper = 2', () => {
     expect(evalB(res.region!.bounds[0].upper)).toBeCloseTo(2);
   });
-  it('φ upper = π', () => {
-    expect(evalB(res.region!.bounds[2].upper)).toBeCloseTo(Math.PI);
+  it('θ polar upper = π', () => {
+    expect(evalB(res.region!.bounds[1].upper)).toBeCloseTo(Math.PI);
+  });
+  it('φ azimutal upper = 2π', () => {
+    expect(evalB(res.region!.bounds[2].upper)).toBeCloseTo(2 * Math.PI);
   });
 });
 
@@ -70,8 +73,8 @@ describe('Hemisferio superior R=1', () => {
   it('ok = true', () => expect(res.ok).toBe(true));
   it('system = spherical', () => expect(res.system).toBe('spherical'));
   it('note menciona superior', () => expect(res.note).toMatch(/superior/i));
-  it('φ ∈ [0, π/2]', () => {
-    const b = res.region!.bounds[2];
+  it('θ (polar) ∈ [0, π/2] (semiesfera superior z≥0)', () => {
+    const b = res.region!.bounds[1];
     expect(evalB(b.lower)).toBeCloseTo(0);
     expect(evalB(b.upper)).toBeCloseTo(Math.PI / 2);
   });
@@ -88,8 +91,8 @@ describe('Hemisferio inferior R=1', () => {
 
   it('ok = true', () => expect(res.ok).toBe(true));
   it('note menciona inferior', () => expect(res.note).toMatch(/inferior/i));
-  it('φ ∈ [π/2, π]', () => {
-    const b = res.region!.bounds[2];
+  it('θ (polar) ∈ [π/2, π] (semiesfera inferior z≤0)', () => {
+    const b = res.region!.bounds[1];
     expect(evalB(b.lower)).toBeCloseTo(Math.PI / 2);
     expect(evalB(b.upper)).toBeCloseTo(Math.PI);
   });

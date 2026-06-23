@@ -152,23 +152,23 @@ describe.each(PRESETS.map((p) => ({ preset: p, id: p.id })))(
 // Tests específicos de presets seleccionados
 // ---------------------------------------------------------------------------
 
-describe('Presets esféricos — convención θ azimutal, φ polar', () => {
-  it('solid-sphere: r∈[0,1], θ∈[0,2π], φ∈[0,π]', () => {
+describe('Presets esféricos — convención ISO: θ polar, φ azimutal', () => {
+  it('solid-sphere: r∈[0,1], θ∈[0,π] (polar), φ∈[0,2π] (azimutal)', () => {
     const r = findPreset('solid-sphere')!.build();
     const scope = {};
-    // r: index 0 en order[0]
+    // r: bounds[0]
     expect(evalBound(r.bounds[0].lower, scope)).toBe(0);
     expect(evalBound(r.bounds[0].upper, scope)).toBe(1);
-    // θ: upper ≈ 2π
-    expect(evalBound(r.bounds[1].upper, scope)).toBeCloseTo(2 * Math.PI, 10);
-    // φ: upper ≈ π
-    expect(evalBound(r.bounds[2].upper, scope)).toBeCloseTo(Math.PI, 10);
+    // θ polar: bounds[1] upper ≈ π
+    expect(evalBound(r.bounds[1].upper, scope)).toBeCloseTo(Math.PI, 10);
+    // φ azimutal: bounds[2] upper ≈ 2π
+    expect(evalBound(r.bounds[2].upper, scope)).toBeCloseTo(2 * Math.PI, 10);
   });
 
-  it('hemisphere: φ_max = π/2 (solo mitad superior)', () => {
+  it('hemisphere: θ_max = π/2 (solo mitad superior, z≥0)', () => {
     const r = findPreset('hemisphere')!.build();
-    const phiUpper = evalBound(r.bounds[2].upper, {});
-    expect(phiUpper).toBeCloseTo(Math.PI / 2, 10);
+    const thetaUpper = evalBound(r.bounds[1].upper, {});
+    expect(thetaUpper).toBeCloseTo(Math.PI / 2, 10);
   });
 
   it('spherical-shell: r_min > 0', () => {
@@ -177,11 +177,11 @@ describe('Presets esféricos — convención θ azimutal, φ polar', () => {
     expect(rMin).toBeGreaterThan(0);
   });
 
-  it('spherical-cap: φ_max < π/2 (casquete pequeño)', () => {
+  it('spherical-cap: θ_max < π/2 (casquete pequeño desde polo norte)', () => {
     const r = findPreset('spherical-cap')!.build();
-    const phiUpper = evalBound(r.bounds[2].upper, {});
-    expect(phiUpper).toBeGreaterThan(0);
-    expect(phiUpper).toBeLessThan(Math.PI / 2);
+    const thetaUpper = evalBound(r.bounds[1].upper, {});
+    expect(thetaUpper).toBeGreaterThan(0);
+    expect(thetaUpper).toBeLessThan(Math.PI / 2);
   });
 });
 

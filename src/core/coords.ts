@@ -12,11 +12,11 @@
  *   h = [1, ρ, 1],  J = ρ
  *   dV = ρ dρ dφ dz
  *
- * ESFÉRICAS  vars [r, θ, φ]
- *   θ AZIMUTAL ∈[0,2π),  φ POLAR (desde +z) ∈[0,π]
- *   x = r sinφ cosθ,  y = r sinφ sinθ,  z = r cosφ
- *   h = [1, r sinφ, r],  J = r² sinφ
- *   dV = r² sinφ dr dθ dφ
+ * ESFÉRICAS  vars [r, θ, φ]  — convención física/ISO
+ *   θ POLAR (cenital, desde +z) ∈[0,π],  φ AZIMUTAL (plano xy) ∈[0,2π)
+ *   x = r sinθ cosφ,  y = r sinθ sinφ,  z = r cosθ
+ *   h = [1, r, r sinθ],  J = r² sinθ
+ *   dV = r² sinθ dr dθ dφ
  *
  * Nota sobre jacobianFactorsLatex:
  *   Cada elemento es el arco físico h_i · d(var_i).
@@ -133,30 +133,30 @@ export const SPHERICAL: CoordSystem = {
 
   vars: [
     { name: 'r',     latex: 'r',       label: 'Radio' },
-    { name: 'theta', latex: '\\theta', label: 'Azimut' },
-    { name: 'phi',   latex: '\\phi',   label: 'Polar (cenital)' },
+    { name: 'theta', latex: '\\theta', label: 'Polar (cenital)' },
+    { name: 'phi',   latex: '\\phi',   label: 'Azimut' },
   ],
 
-  // u=r, v=θ (azimutal), w=φ (polar desde +z)
+  // u=r, v=θ (polar/cenital desde +z), w=φ (azimutal en plano xy)
   toCartesian(r: number, theta: number, phi: number): Vec3 {
     return [
-      r * Math.sin(phi) * Math.cos(theta),
-      r * Math.sin(phi) * Math.sin(theta),
-      r * Math.cos(phi),
+      r * Math.sin(theta) * Math.cos(phi),
+      r * Math.sin(theta) * Math.sin(phi),
+      r * Math.cos(theta),
     ];
   },
 
-  scaleFactors(r: number, _theta: number, phi: number): Vec3 {
-    return [1, r * Math.sin(phi), r];
+  scaleFactors(r: number, theta: number, _phi: number): Vec3 {
+    return [1, r, r * Math.sin(theta)];
   },
 
-  jacobian(r: number, _theta: number, phi: number): number {
-    return r * r * Math.sin(phi);
+  jacobian(r: number, theta: number, _phi: number): number {
+    return r * r * Math.sin(theta);
   },
 
-  volumeElementLatex: 'r^2\\sin\\phi\\,dr\\,d\\theta\\,d\\phi',
+  volumeElementLatex: 'r^2\\sin\\theta\\,dr\\,d\\theta\\,d\\phi',
 
-  jacobianFactorsLatex: ['dr', 'r\\sin\\phi\\,d\\theta', 'r\\,d\\phi'],
+  jacobianFactorsLatex: ['dr', 'r\\,d\\theta', 'r\\sin\\theta\\,d\\phi'],
 };
 
 // ---------------------------------------------------------------------------

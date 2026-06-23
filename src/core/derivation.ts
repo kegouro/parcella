@@ -127,15 +127,15 @@ const VAR_META: Record<string, VarMeta> = {
       'El punto se convierte en un segmento de longitud dr.',
   },
   'spherical:1': {
-    title: 'Barre el azimut θ',
+    title: 'Barre el ángulo polar θ',
     narration:
-      'Gira un ángulo infinitesimal dθ en el paralelo de radio r·sinφ: el punto recorre un arco de longitud r·sinφ·dθ. ' +
+      'Gira un ángulo infinitesimal dθ en el meridiano de radio r: el punto recorre un arco de longitud r·dθ. ' +
       'El segmento anterior barre una franja de la superficie esférica.',
   },
   'spherical:2': {
-    title: 'Barre el ángulo polar φ',
+    title: 'Barre el azimut φ',
     narration:
-      'Gira un ángulo infinitesimal dφ en el meridiano de radio r: el punto recorre un arco de longitud r·dφ. ' +
+      'Gira un ángulo infinitesimal dφ en el paralelo de radio r·sinθ: el punto recorre un arco de longitud r·sinθ·dφ. ' +
       'La franja anterior se cierra formando el elemento de volumen esférico.',
   },
 };
@@ -155,7 +155,7 @@ const STEP0_NARRATION: Record<string, string> = {
     'Partimos de un punto fijo (ρ₀, φ₀, z₀) en coordenadas cilíndricas. ' +
     'Barreremos ρ, φ y z para construir el elemento de volumen dV.',
   spherical:
-    'Partimos de un punto fijo (r₀, θ₀, φ₀) en coordenadas esféricas. ' +
+    'Partimos de un punto fijo (r₀, θ₀, φ₀) en coordenadas esféricas (ISO: θ polar, φ azimutal). ' +
     'Barreremos r, θ y φ para construir el elemento de volumen dV.',
 };
 

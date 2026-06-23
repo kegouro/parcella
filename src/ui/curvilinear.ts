@@ -45,11 +45,11 @@ const EXAMPLES: Example[] = [
   },
   {
     label: 'Esféricas',
-    xExpr: 'u*sin(w)*cos(v)',
-    yExpr: 'u*sin(w)*sin(v)',
-    zExpr: 'u*cos(w)',
-    u0: 1, v0: 0.6, w0: 1.0,
-    note: '|J| = u²·sin(w)  (= r²sinφ clásico)',
+    xExpr: 'u*sin(v)*cos(w)',
+    yExpr: 'u*sin(v)*sin(w)',
+    zExpr: 'u*cos(v)',
+    u0: 1, v0: 1.0, w0: 0.6,
+    note: '|J| = u²·sin(v)  (= r²sinθ, conv. ISO: v=θ polar, w=φ azimutal)',
   },
 ];
 
@@ -491,7 +491,7 @@ function buildTutorialHTML(): string {
   <p class="curv-p curv-p--examples">
     Ejemplos clásicos:
     cilíndricas <span data-katex="|J|=\\rho"></span> —
-    esféricas <span data-katex="|J|=r^2\\sin\\varphi"></span> —
+    esféricas <span data-katex="|J|=r^2\\sin\\theta"></span> —
     cartesianas <span data-katex="|J|=1"></span>.
   </p>
 </div>

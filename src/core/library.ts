@@ -4,7 +4,7 @@
  * Convenciones (compartidas):
  *   Cilíndricas: vars [ρ, φ, z] índices [0,1,2].
  *   Esféricas:   vars [r, θ, φ] índices [0,1,2].
- *                θ azimutal ∈ [0,2π), φ polar ∈ [0,π] desde +z.
+ *                θ polar (cenital) ∈ [0,π] desde +z, φ azimutal ∈ [0,2π).
  *
  * `order`: de MÁS INDEPENDIENTE (order[0]) a MÁS DEPENDIENTE (order[2]).
  */
@@ -50,14 +50,14 @@ function fullSweep(): SweepState {
 export const PRESETS: Preset[] = [
   // ─────────────────────────────────────────────────────────────────────────
   // 1. BOLA SÓLIDA (esféricas)
-  //    r ∈ [0,R], θ ∈ [0,2π), φ ∈ [0,π]
+  //    r ∈ [0,R], θ ∈ [0,π], φ ∈ [0,2π)
   // ─────────────────────────────────────────────────────────────────────────
   {
     id: 'solid-sphere',
     label: 'Bola sólida',
     description:
       'Esfera sólida de radio R. Integra r desde 0 hasta R, ' +
-      'ángulo azimutal θ en [0,2π) y ángulo polar φ en [0,π].',
+      'ángulo polar θ en [0,π] y ángulo azimutal φ en [0,2π).',
     system: 'spherical',
     build(): Region {
       const R = 1;
@@ -67,8 +67,8 @@ export const PRESETS: Preset[] = [
         order: [0, 1, 2],
         bounds: [
           { lower: 0, upper: R },           // r
-          { lower: 0, upper: `2 * pi` },    // θ
-          { lower: 0, upper: `pi` },         // φ
+          { lower: 0, upper: `pi` },         // θ polar
+          { lower: 0, upper: `2 * pi` },    // φ azimutal
         ],
       };
     },
@@ -77,7 +77,7 @@ export const PRESETS: Preset[] = [
 
   // ─────────────────────────────────────────────────────────────────────────
   // 2. CASCARÓN ESFÉRICO (esféricas)
-  //    r ∈ [R1,R2], θ ∈ [0,2π), φ ∈ [0,π]
+  //    r ∈ [R1,R2], θ ∈ [0,π], φ ∈ [0,2π)
   // ─────────────────────────────────────────────────────────────────────────
   {
     id: 'spherical-shell',
@@ -94,8 +94,8 @@ export const PRESETS: Preset[] = [
         order: [0, 1, 2],
         bounds: [
           { lower: R1, upper: R2 },
-          { lower: 0, upper: `2 * pi` },
-          { lower: 0, upper: `pi` },
+          { lower: 0, upper: `pi` },         // θ polar
+          { lower: 0, upper: `2 * pi` },    // φ azimutal
         ],
       };
     },
@@ -104,14 +104,14 @@ export const PRESETS: Preset[] = [
 
   // ─────────────────────────────────────────────────────────────────────────
   // 3. SEMIESFERA (esféricas)
-  //    r ∈ [0,R], θ ∈ [0,2π), φ ∈ [0,π/2]  (mitad superior z ≥ 0)
+  //    r ∈ [0,R], θ ∈ [0,π/2], φ ∈ [0,2π)  (mitad superior z ≥ 0)
   // ─────────────────────────────────────────────────────────────────────────
   {
     id: 'hemisphere',
     label: 'Semiesfera',
     description:
       'Mitad superior de una esfera sólida (z ≥ 0). ' +
-      'El ángulo polar φ recorre solo [0,π/2].',
+      'El ángulo polar θ recorre solo [0,π/2].',
     system: 'spherical',
     build(): Region {
       const R = 1;
@@ -120,8 +120,8 @@ export const PRESETS: Preset[] = [
         order: [0, 1, 2],
         bounds: [
           { lower: 0, upper: R },
-          { lower: 0, upper: `2 * pi` },
-          { lower: 0, upper: `pi / 2` },
+          { lower: 0, upper: `pi / 2` },     // θ polar ∈ [0,π/2]
+          { lower: 0, upper: `2 * pi` },     // φ azimutal ∈ [0,2π)
         ],
       };
     },
@@ -130,14 +130,14 @@ export const PRESETS: Preset[] = [
 
   // ─────────────────────────────────────────────────────────────────────────
   // 4. CASQUETE ESFÉRICO (esféricas)
-  //    r ∈ [0,R], θ ∈ [0,2π), φ ∈ [0,α]  (casquete de ángulo α desde el polo)
+  //    r ∈ [0,R], θ ∈ [0,α], φ ∈ [0,2π)  (casquete de ángulo α desde el polo)
   // ─────────────────────────────────────────────────────────────────────────
   {
     id: 'spherical-cap',
     label: 'Casquete esférico',
     description:
       'Sólido en forma de casquete: la porción de la esfera de radio R ' +
-      'delimitada por el ángulo polar φ ≤ α (desde el polo norte).',
+      'delimitada por el ángulo polar θ ≤ α (desde el polo norte).',
     system: 'spherical',
     build(): Region {
       const R = 1;
@@ -147,8 +147,8 @@ export const PRESETS: Preset[] = [
         order: [0, 1, 2],
         bounds: [
           { lower: 0, upper: R },
-          { lower: 0, upper: `2 * pi` },
-          { lower: 0, upper: alpha },
+          { lower: 0, upper: alpha },        // θ polar ∈ [0,α]
+          { lower: 0, upper: `2 * pi` },    // φ azimutal ∈ [0,2π)
         ],
       };
     },

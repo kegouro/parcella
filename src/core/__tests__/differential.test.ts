@@ -18,14 +18,14 @@ import type { Region, SweepState } from '../types.js';
 // Regiones de prueba
 // ---------------------------------------------------------------------------
 
-/** Bola sólida en esféricas, order canónico [r, θ, φ] */
+/** Bola sólida en esféricas, order canónico [r, θ, φ] — convención ISO */
 const solidSphere: Region = {
   system: 'spherical',
   order: [0, 1, 2],
   bounds: [
     { lower: 0, upper: 1 },
-    { lower: 0, upper: '2 * pi' },
-    { lower: 0, upper: 'pi' },
+    { lower: 0, upper: 'pi' },        // θ polar ∈ [0,π]
+    { lower: 0, upper: '2 * pi' },    // φ azimutal ∈ [0,2π)
   ],
 };
 
@@ -86,10 +86,10 @@ describe('differentialLatex — esféricas, 3 activas → dV', () => {
 
   it('expression contiene los 3 factores LaTeX de SPHERICAL', () => {
     const { expression } = differentialLatex(SPHERICAL, sweep);
-    // jacobianFactorsLatex de esféricas: ['dr', 'r\\sin\\phi\\,d\\theta', 'r\\,d\\phi']
+    // jacobianFactorsLatex de esféricas (ISO): ['dr', 'r\\,d\\theta', 'r\\sin\\theta\\,d\\phi']
     expect(expression).toContain('dr');
-    expect(expression).toContain('r\\sin\\phi\\,d\\theta');
-    expect(expression).toContain('r\\,d\\phi');
+    expect(expression).toContain('r\\,d\\theta');
+    expect(expression).toContain('r\\sin\\theta\\,d\\phi');
   });
 
   it('expression empieza con "dV ="', () => {
@@ -117,16 +117,16 @@ describe('differentialLatex — esféricas, active=[true,false,true] → dS', ()
     expect(factors[2].active).toBe(true);  // φ
   });
 
-  it('expression contiene dr y r\\,d\\phi', () => {
+  it('expression contiene dr y r\\sin\\theta\\,d\\phi', () => {
     const { expression } = differentialLatex(SPHERICAL, sweep);
     expect(expression).toContain('dr');
-    expect(expression).toContain('r\\,d\\phi');
+    expect(expression).toContain('r\\sin\\theta\\,d\\phi');
   });
 
   it('expression NO contiene el factor de θ', () => {
     const { expression } = differentialLatex(SPHERICAL, sweep);
-    // El factor de θ es 'r\\sin\\phi\\,d\\theta'
-    expect(expression).not.toContain('r\\sin\\phi\\,d\\theta');
+    // El factor de θ (polar) es 'r\\,d\\theta'
+    expect(expression).not.toContain('r\\,d\\theta');
   });
 
   it('expression empieza con "dS ="', () => {

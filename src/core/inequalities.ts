@@ -150,8 +150,8 @@ function tryBall(normalized: string[]): DeduceResult | null {
       order: [0, 1, 2],
       bounds: [
         { lower: 0, upper: R },
-        { lower: 0, upper: '2 * pi' },
-        { lower: 0, upper: 'pi' },
+        { lower: 0, upper: 'pi' },       // θ polar ∈ [0,π]
+        { lower: 0, upper: '2 * pi' },   // φ azimutal ∈ [0,2π)
       ],
     },
   };
@@ -186,8 +186,9 @@ function tryHemisphere(normalized: string[]): DeduceResult | null {
 
   if (!upperHemi && !lowerHemi) return null;
 
-  const phiLower = lowerHemi ? 'pi / 2' : 0;
-  const phiUpper = lowerHemi ? 'pi' : 'pi / 2';
+  // θ es el ángulo polar (desde +z): superior z≥0 → θ∈[0,π/2]; inferior z≤0 → θ∈[π/2,π]
+  const thetaLower = lowerHemi ? 'pi / 2' : 0;
+  const thetaUpper = lowerHemi ? 'pi' : 'pi / 2';
   const label = lowerHemi ? 'inferior' : 'superior';
 
   return {
@@ -199,8 +200,8 @@ function tryHemisphere(normalized: string[]): DeduceResult | null {
       order: [0, 1, 2],
       bounds: [
         { lower: 0, upper: R },
-        { lower: 0, upper: '2 * pi' },
-        { lower: phiLower, upper: phiUpper },
+        { lower: thetaLower, upper: thetaUpper },  // θ polar
+        { lower: 0, upper: '2 * pi' },             // φ azimutal
       ],
     },
   };

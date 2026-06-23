@@ -15,7 +15,7 @@ import type { AppState } from './types.js';
  * Devuelve un AppState inicial didáctico:
  * sistema esférico, bola de radio 1.
  *
- * Convención: θ azimutal (0…2π), φ polar (0…π).
+ * Convención ISO/física: θ polar (0…π), φ azimutal (0…2π).
  * Orden de integración interno→externo: r=0, θ=1, φ=2.
  */
 export function defaultState(): AppState {
@@ -25,8 +25,8 @@ export function defaultState(): AppState {
       order: [0, 1, 2],
       bounds: [
         { lower: 0, upper: 1 },          // r ∈ [0, 1]
-        { lower: 0, upper: '2*pi' },      // θ ∈ [0, 2π]
-        { lower: 0, upper: 'pi' },        // φ ∈ [0, π]
+        { lower: 0, upper: 'pi' },        // θ ∈ [0, π]  (polar)
+        { lower: 0, upper: '2*pi' },      // φ ∈ [0, 2π] (azimutal)
       ],
     },
     integrand: {

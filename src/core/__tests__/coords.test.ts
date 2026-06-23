@@ -1,10 +1,10 @@
 /**
  * coords.test.ts — Tests de los sistemas de coordenadas de Parcella.
  *
- * Convención esférica recordatorio:
- *   vars = [r, θ, φ]   θ=azimut ∈[0,2π),  φ=polar desde +z ∈[0,π]
- *   x = r sinφ cosθ,  y = r sinφ sinθ,  z = r cosφ
- *   J = r² sinφ
+ * Convención esférica ISO/física:
+ *   vars = [r, θ, φ]   θ=polar (cenital) ∈[0,π],  φ=azimutal ∈[0,2π)
+ *   x = r sinθ cosφ,  y = r sinθ sinφ,  z = r cosθ
+ *   J = r² sinθ
  */
 
 import { describe, it, expect } from 'vitest';
@@ -208,11 +208,15 @@ describe('CYLINDRICAL', () => {
 // ---------------------------------------------------------------------------
 
 describe('SPHERICAL', () => {
+  // Convención ISO/física: θ polar (cenital, desde +z), φ azimutal (plano xy)
+  // x = r sinθ cosφ,  y = r sinθ sinφ,  z = r cosθ
+  // J = r² sinθ
+
   it('tiene id correcto', () => {
     expect(SPHERICAL.id).toBe('spherical');
   });
 
-  // Puntos de referencia (r=1, θ=0, φ=0) → polo norte (0,0,1)
+  // θ=0 → polo norte (0,0,1) independientemente de φ
   it('toCartesian: r=1, theta=0, phi=0 → polo norte (0,0,1)', () => {
     const [x, y, z] = SPHERICAL.toCartesian(1, 0, 0);
     expect(x).toBeCloseTo(0, 10);
@@ -220,15 +224,15 @@ describe('SPHERICAL', () => {
     expect(z).toBeCloseTo(1, 10);
   });
 
-  // (r=1, θ=0, φ=π/2) → ecuador en x positivo (1,0,0)
-  it('toCartesian: r=1, theta=0, phi=pi/2 → (1,0,0)', () => {
-    const [x, y, z] = SPHERICAL.toCartesian(1, 0, Math.PI / 2);
+  // θ=π/2, φ=0 → ecuador en x positivo (1,0,0)
+  it('toCartesian: r=1, theta=pi/2, phi=0 → (1,0,0)', () => {
+    const [x, y, z] = SPHERICAL.toCartesian(1, Math.PI / 2, 0);
     expect(x).toBeCloseTo(1, 10);
     expect(y).toBeCloseTo(0, 10);
     expect(z).toBeCloseTo(0, 10);
   });
 
-  // (r=1, θ=π/2, φ=π/2) → (0,1,0)
+  // θ=π/2, φ=π/2 → (0,1,0)
   it('toCartesian: r=1, theta=pi/2, phi=pi/2 → (0,1,0)', () => {
     const [x, y, z] = SPHERICAL.toCartesian(1, Math.PI / 2, Math.PI / 2);
     expect(x).toBeCloseTo(0, 10);
@@ -236,61 +240,61 @@ describe('SPHERICAL', () => {
     expect(z).toBeCloseTo(0, 10);
   });
 
-  // (r=1, θ=0, φ=π) → polo sur (0,0,-1)
-  it('toCartesian: r=1, theta=0, phi=pi → polo sur (0,0,-1)', () => {
-    const [x, y, z] = SPHERICAL.toCartesian(1, 0, Math.PI);
+  // θ=π → polo sur (0,0,-1) independientemente de φ
+  it('toCartesian: r=1, theta=pi, phi=0 → polo sur (0,0,-1)', () => {
+    const [x, y, z] = SPHERICAL.toCartesian(1, Math.PI, 0);
     expect(x).toBeCloseTo(0, 10);
     expect(y).toBeCloseTo(0, 10);
     expect(z).toBeCloseTo(-1, 10);
   });
 
-  // (r=2, θ=pi, φ=pi/2) → (-2,0,0)
-  it('toCartesian: r=2, theta=pi, phi=pi/2 → (-2,0,0)', () => {
-    const [x, y, z] = SPHERICAL.toCartesian(2, Math.PI, Math.PI / 2);
+  // r=2, θ=π/2, φ=π → (-2,0,0)
+  it('toCartesian: r=2, theta=pi/2, phi=pi → (-2,0,0)', () => {
+    const [x, y, z] = SPHERICAL.toCartesian(2, Math.PI / 2, Math.PI);
     expect(x).toBeCloseTo(-2, 10);
     expect(y).toBeCloseTo(0, 10);
     expect(z).toBeCloseTo(0, 10);
   });
 
-  it('scaleFactors = [1, r sinφ, r]', () => {
+  it('scaleFactors = [1, r, r sinθ]', () => {
     const r = 3;
-    const phi = Math.PI / 4;
-    const h = SPHERICAL.scaleFactors(r, 0, phi);
+    const theta = Math.PI / 4;
+    const h = SPHERICAL.scaleFactors(r, theta, 0);
     expect(h[0]).toBeCloseTo(1, 10);
-    expect(h[1]).toBeCloseTo(r * Math.sin(phi), 10);
-    expect(h[2]).toBeCloseTo(r, 10);
+    expect(h[1]).toBeCloseTo(r, 10);
+    expect(h[2]).toBeCloseTo(r * Math.sin(theta), 10);
   });
 
-  it('jacobian: r=2, phi=pi/2 → 4', () => {
-    // J = r² sinφ = 4 * 1 = 4
-    expect(SPHERICAL.jacobian(2, 0, Math.PI / 2)).toBeCloseTo(4, 10);
+  it('jacobian: r=2, theta=pi/2 → 4', () => {
+    // J = r² sinθ = 4 * 1 = 4
+    expect(SPHERICAL.jacobian(2, Math.PI / 2, 0)).toBeCloseTo(4, 10);
   });
 
-  it('jacobian: r=3, phi=pi/6 → 9 * sin(pi/6) = 4.5', () => {
+  it('jacobian: r=3, theta=pi/6 → 9 * sin(pi/6) = 4.5', () => {
     const expected = 9 * Math.sin(Math.PI / 6); // 4.5
-    expect(SPHERICAL.jacobian(3, 0, Math.PI / 6)).toBeCloseTo(expected, 10);
+    expect(SPHERICAL.jacobian(3, Math.PI / 6, 0)).toBeCloseTo(expected, 10);
   });
 
   it('jacobian: r=0 → 0', () => {
-    expect(SPHERICAL.jacobian(0, 0, Math.PI / 4)).toBeCloseTo(0, 10);
+    expect(SPHERICAL.jacobian(0, Math.PI / 4, 0)).toBeCloseTo(0, 10);
   });
 
   it('jacobian = producto de scaleFactors', () => {
     const r = 2;
-    const phi = Math.PI / 3;
-    const h = SPHERICAL.scaleFactors(r, 1, phi);
-    expect(SPHERICAL.jacobian(r, 1, phi)).toBeCloseTo(h[0] * h[1] * h[2], 10);
+    const theta = Math.PI / 3;
+    const h = SPHERICAL.scaleFactors(r, theta, 1);
+    expect(SPHERICAL.jacobian(r, theta, 1)).toBeCloseTo(h[0] * h[1] * h[2], 10);
   });
 
   it('volumeElementLatex correcto', () => {
-    expect(SPHERICAL.volumeElementLatex).toBe('r^2\\sin\\phi\\,dr\\,d\\theta\\,d\\phi');
+    expect(SPHERICAL.volumeElementLatex).toBe('r^2\\sin\\theta\\,dr\\,d\\theta\\,d\\phi');
   });
 
   it('jacobianFactorsLatex correctos (arcos físicos)', () => {
     expect(SPHERICAL.jacobianFactorsLatex).toEqual([
       'dr',
-      'r\\sin\\phi\\,d\\theta',
-      'r\\,d\\phi',
+      'r\\,d\\theta',
+      'r\\sin\\theta\\,d\\phi',
     ]);
   });
 
@@ -304,6 +308,11 @@ describe('SPHERICAL', () => {
     expect(SPHERICAL.vars[0].latex).toBe('r');
     expect(SPHERICAL.vars[1].latex).toBe('\\theta');
     expect(SPHERICAL.vars[2].latex).toBe('\\phi');
+  });
+
+  it('vars tienen labels correctos (polar/azimut)', () => {
+    expect(SPHERICAL.vars[1].label).toBe('Polar (cenital)');
+    expect(SPHERICAL.vars[2].label).toBe('Azimut');
   });
 });
 
@@ -350,25 +359,27 @@ describe('SYSTEMS / getSystem', () => {
 // ---------------------------------------------------------------------------
 
 describe('makeCurvilinear', () => {
-  // Sistema esférico en variables (u=r, v=theta, w=phi):
-  //   x = u * sin(w) * cos(v)
-  //   y = u * sin(w) * sin(v)
-  //   z = u * cos(w)
+  // Sistema esférico en convención ISO (u=r, v=θ polar, w=φ azimutal):
+  //   x = u * sin(v) * cos(w)
+  //   y = u * sin(v) * sin(w)
+  //   z = u * cos(v)
   const sphericalCurvi = makeCurvilinear({
     id: 'curvilinear',
     label: 'Esféricas curvilíneas',
-    xExpr: 'u * sin(w) * cos(v)',
-    yExpr: 'u * sin(w) * sin(v)',
-    zExpr: 'u * cos(w)',
+    xExpr: 'u * sin(v) * cos(w)',
+    yExpr: 'u * sin(v) * sin(w)',
+    zExpr: 'u * cos(v)',
   });
 
-  it('toCartesian reproduce esféricas: r=1, theta=0, phi=pi/2 → (1,0,0)', () => {
-    const [x, y, z] = sphericalCurvi.toCartesian(1, 0, Math.PI / 2);
+  // θ=π/2, φ=0 → (1,0,0)
+  it('toCartesian reproduce esféricas: r=1, theta=pi/2, phi=0 → (1,0,0)', () => {
+    const [x, y, z] = sphericalCurvi.toCartesian(1, Math.PI / 2, 0);
     expect(x).toBeCloseTo(1, 8);
     expect(y).toBeCloseTo(0, 8);
     expect(z).toBeCloseTo(0, 8);
   });
 
+  // θ=π/2, φ=π/2 → (0,2,0)
   it('toCartesian reproduce esféricas: r=2, theta=pi/2, phi=pi/2 → (0,2,0)', () => {
     const [x, y, z] = sphericalCurvi.toCartesian(2, Math.PI / 2, Math.PI / 2);
     expect(x).toBeCloseTo(0, 8);
@@ -376,32 +387,32 @@ describe('makeCurvilinear', () => {
     expect(z).toBeCloseTo(0, 8);
   });
 
-  it('jacobian reproduce r²sinφ: r=2, phi=pi/2 → ≈4', () => {
+  it('jacobian reproduce r²sinθ: r=2, theta=pi/2 → ≈4', () => {
     const r = 2;
-    const phi = Math.PI / 2;
-    const J = sphericalCurvi.jacobian(r, 0, phi);
-    const expected = r * r * Math.sin(phi); // 4
+    const theta = Math.PI / 2;
+    const J = sphericalCurvi.jacobian(r, theta, 0);
+    const expected = r * r * Math.sin(theta); // 4
     expect(J).toBeCloseTo(expected, 3);
   });
 
-  it('jacobian reproduce r²sinφ: r=3, phi=pi/3 → ≈9 sin(pi/3)', () => {
+  it('jacobian reproduce r²sinθ: r=3, theta=pi/3 → ≈9 sin(pi/3)', () => {
     const r = 3;
-    const phi = Math.PI / 3;
-    const J = sphericalCurvi.jacobian(r, 0.5, phi);
-    const expected = r * r * Math.sin(phi);
+    const theta = Math.PI / 3;
+    const J = sphericalCurvi.jacobian(r, theta, 0.5);
+    const expected = r * r * Math.sin(theta);
     expect(J).toBeCloseTo(expected, 3);
   });
 
-  it('scaleFactors[0] ≈ 1 (h_r) en (r=2, theta=0.3, phi=pi/4)', () => {
-    const [hu] = sphericalCurvi.scaleFactors(2, 0.3, Math.PI / 4);
+  it('scaleFactors[0] ≈ 1 (h_r) en (r=2, theta=pi/4, phi=0.3)', () => {
+    const [hu] = sphericalCurvi.scaleFactors(2, Math.PI / 4, 0.3);
     expect(hu).toBeCloseTo(1, 3);
   });
 
-  it('scaleFactors[2] ≈ r (h_phi) en (r=3, theta=0, phi=pi/3)', () => {
+  it('scaleFactors[1] ≈ r (h_theta) en (r=3, theta=pi/3, phi=0)', () => {
     const r = 3;
-    const phi = Math.PI / 3;
-    const h = sphericalCurvi.scaleFactors(r, 0, phi);
-    expect(h[2]).toBeCloseTo(r, 3);  // h_phi = r
+    const theta = Math.PI / 3;
+    const h = sphericalCurvi.scaleFactors(r, theta, 0);
+    expect(h[1]).toBeCloseTo(r, 3);  // h_theta = r
   });
 
   it('reproduces cartesian identity: x=u, y=v, z=w', () => {

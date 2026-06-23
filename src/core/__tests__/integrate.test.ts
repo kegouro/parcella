@@ -29,8 +29,9 @@ function allActive(progress: [number, number, number] = [1, 1, 1]): SweepState {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Volumen de la bola unitaria en esféricas
-//    r∈[0,1], θ∈[0,2π], φ∈[0,π], vars canónicas: [r=0, θ=1, φ=2]
+// 1. Volumen de la bola unitaria en esféricas (convención ISO)
+//    r∈[0,1], θ∈[0,π] (polar), φ∈[0,2π] (azimutal)
+//    vars canónicas: [r=0, θ=1, φ=2]
 //    order [0,1,2]: nivel 0=r (más independiente), nivel 1=θ, nivel 2=φ
 //    Valor esperado: 4π/3 ≈ 4.18879
 // ---------------------------------------------------------------------------
@@ -40,8 +41,8 @@ const ballRegion: Region = {
   order: [0, 1, 2],
   bounds: [
     { lower: 0, upper: 1 },       // r ∈ [0,1]
-    { lower: 0, upper: 6.28318 }, // θ ∈ [0,2π]
-    { lower: 0, upper: 3.14159 }, // φ ∈ [0,π]
+    { lower: 0, upper: 3.14159 }, // θ ∈ [0,π]  (polar)
+    { lower: 0, upper: 6.28318 }, // φ ∈ [0,2π] (azimutal)
   ],
 };
 
@@ -63,8 +64,8 @@ describe('Volumen bola unitaria (esféricas, 3 activas)', () => {
   });
 
   it("scalar 'x^2+y^2+z^2' → 4π/5 ≈ 2.5133", () => {
-    // ∫∫∫ r² · r² sinφ dr dθ dφ = (∫₀¹ r⁴ dr)(∫₀²π dθ)(∫₀π sinφ dφ)
-    //   = (1/5)(2π)(2) = 4π/5
+    // ∫∫∫ r² · r² sinθ dr dθ dφ = (∫₀¹ r⁴ dr)(∫₀π sinθ dθ)(∫₀²π dφ)
+    //   = (1/5)(2)(2π) = 4π/5
     const result = integrateTotal(ballRegion, SPHERICAL, scalarR2, sweep, { res: RES });
     expect(result).toBeCloseTo(4 * Math.PI / 5, 1);
   });
@@ -72,13 +73,13 @@ describe('Volumen bola unitaria (esféricas, 3 activas)', () => {
 
 // ---------------------------------------------------------------------------
 // 2. Área de la esfera unitaria
-//    r congelado en t=1 (r=1), θ y φ activos
+//    r congelado en t=1 (r=1), θ (polar) y φ (azimutal) activos
 //    Valor esperado: 4π ≈ 12.566
 // ---------------------------------------------------------------------------
 
 describe('Área superficie esfera r=1 (r congelado)', () => {
   const sweep: SweepState = {
-    active: [false, true, true], // r congelado, θ y φ activos
+    active: [false, true, true], // r congelado, θ (polar) y φ (azimutal) activos
     frozen: [1, 0, 0],          // frozen[0]=1 → r fijo en upper=1 (t=1→ 0+1·1=1)
     progress: [0, 1, 1],
   };
@@ -193,10 +194,9 @@ describe('integratePartial / integrateTotal', () => {
 
 // ---------------------------------------------------------------------------
 // 8. Modo vector — Flujo ∫∫ F·dS en la esfera unidad (F = [x,y,z])
-//    r congelado en r=1, θ y φ activos (c=1 y c=2).
-//    Orientación canónica: dS = r_θ × r_φ (a=1 < b=2) → normal INWARD.
-//    F=[x,y,z] = r̂ en la esfera → F·dS = -sinφ → integral = -4π ≈ -12.566.
-//    Por el teorema de la divergencia con normal hacia AFUERA: |∫∫ F·dS| = 4π.
+//    r congelado en r=1, θ (polar) y φ (azimutal) activos (c=1 y c=2).
+//    Orientación canónica: dS = r_θ × r_φ → normal INWARD (con conv. ISO).
+//    F=[x,y,z] = r̂ en la esfera → |∫∫ F·dS| = 4π ≈ 12.566.
 //    Convención de signo: negativo con la orientación canónica (θ antes de φ).
 // ---------------------------------------------------------------------------
 
@@ -206,8 +206,8 @@ describe('Flujo F=[x,y,z] esfera unidad (modo vector)', () => {
     order: [0, 1, 2],
     bounds: [
       { lower: 0, upper: 1 },         // r ∈ [0,1] (congelado en r=1)
-      { lower: 0, upper: 6.28318 },   // θ ∈ [0,2π]
-      { lower: 0, upper: 3.14159 },   // φ ∈ [0,π]
+      { lower: 0, upper: 3.14159 },   // θ ∈ [0,π]  (polar)
+      { lower: 0, upper: 6.28318 },   // φ ∈ [0,2π] (azimutal)
     ],
   };
 
@@ -296,27 +296,27 @@ describe('Circulación F=[-y,x,0] círculo unidad z=0 (modo vector)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. Longitud de arco en esféricas (1 variable activa)
-//    θ activo (índice canónico 1), r=1 congelado, φ=π/2 congelado
-//    Arco = ∫₀^{2π} h_θ dθ = ∫₀^{2π} r·sinφ dθ = 1·1·2π ≈ 6.28318
+// 7. Longitud de arco en esféricas (1 variable activa) — convención ISO
+//    φ activo (índice canónico 2, azimutal), r=1 congelado, θ=π/2 congelado
+//    Arco = ∫₀^{2π} h_φ dφ = ∫₀^{2π} r·sinθ dφ = 1·sin(π/2)·2π = 2π ≈ 6.28318
 // ---------------------------------------------------------------------------
 
-describe('Longitud de arco ecuador (θ activo, r=1, φ=π/2 congelados)', () => {
+describe('Longitud de arco ecuador (φ activo, r=1, θ=π/2 congelados)', () => {
   const arcRegion: Region = {
     system: 'spherical',
     order: [0, 1, 2],
     bounds: [
       { lower: 0, upper: 1 },        // r ∈ [0,1]
-      { lower: 0, upper: 6.28318 },  // θ ∈ [0,2π]
-      { lower: 0, upper: 3.14159 },  // φ ∈ [0,π]
+      { lower: 0, upper: 3.14159 },  // θ ∈ [0,π]  (polar)
+      { lower: 0, upper: 6.28318 },  // φ ∈ [0,2π] (azimutal)
     ],
   };
 
-  // r congelado en t=1 (r=1), θ activo, φ congelado en t=0.5 (φ=π/2)
+  // r congelado en t=1 (r=1), φ activo, θ congelado en t=0.5 (θ=π/2)
   const sweep: SweepState = {
-    active: [false, true, false],
-    frozen: [1, 0, 0.5],  // r→1, φ→π/2
-    progress: [0, 1, 0],
+    active: [false, false, true],
+    frozen: [1, 0.5, 0],  // r→1, θ→π/2
+    progress: [0, 0, 1],
   };
 
   it('geometric → 2π ≈ 6.28318', () => {

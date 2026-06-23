@@ -35,8 +35,8 @@ function lessonRegion(systemId: SystemId): Region {
         order: [0, 1, 2],
         bounds: [
           { lower: 0, upper: 1 },
-          { lower: 0, upper: '2 * pi' },
-          { lower: 0, upper: 'pi' },
+          { lower: 0, upper: 'pi' },        // θ polar ∈ [0,π]
+          { lower: 0, upper: '2 * pi' },    // φ azimutal ∈ [0,2π)
         ],
       };
     case 'cylindrical':

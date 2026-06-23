@@ -71,9 +71,11 @@ export async function recordSweepGif(opts: GifOptions): Promise<Blob> {
 
   const delay = Math.round(1000 / fps); // ms por frame
 
-  // Inicializar el encoder GIF
+  // Inicializar el encoder GIF.
+  // OJO: NO llamar encoder.writeHeader() aquí — gifenc escribe la cabecera con el
+  // tamaño correcto en el primer writeFrame. Llamarla aparte deja el descriptor de
+  // pantalla en 0/basura y produce un GIF dañado.
   const encoder = GIFEncoder();
-  encoder.writeHeader();
 
   // --- Capturar cada frame ---
   for (let i = 0; i < frames; i++) {

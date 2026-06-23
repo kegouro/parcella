@@ -30,6 +30,8 @@ export interface SceneContext {
   renderer: THREE.WebGLRenderer;
   css2dRenderer: CSS2DRenderer;
   controls: OrbitControls;
+  /** Orienta la cámara fija desde sliders (azimut/elevación en grados, zoom multiplicador). */
+  setView(azimuthDeg: number, elevationDeg: number, zoom: number): void;
   /** Llama dispose() para parar el loop y liberar recursos. */
   dispose(): void;
   /** Ajusta el tamaño del renderer al contenedor. */
@@ -71,18 +73,31 @@ export function createScene(container: HTMLElement): SceneContext {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BG_COLOR);
 
-  // --- Cámara ---
+  // --- Cámara (fija; se orienta solo por setView desde sliders, estilo GeoGebra) ---
   const { clientWidth: w, clientHeight: h } = container;
   const camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 500);
-  camera.position.set(4, 3, 5);
-  camera.lookAt(0, 0, 0);
 
-  // --- OrbitControls ---
+  // --- OrbitControls: SIN interacción de mouse (la vista se controla por sliders) ---
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-  controls.minDistance = 0.2;
-  controls.maxDistance = 200;
+  controls.enableRotate = false;
+  controls.enablePan = false;
+  controls.enableZoom = false;
+  controls.enableDamping = false;
+
+  // La cámara se ubica en coordenadas esféricas alrededor del origen.
+  const BASE_DISTANCE = 7;
+  function setView(azimuthDeg: number, elevationDeg: number, zoom: number): void {
+    const el = (Math.max(-89, Math.min(89, elevationDeg)) * Math.PI) / 180;
+    const az = (azimuthDeg * Math.PI) / 180;
+    const dist = BASE_DISTANCE / Math.max(0.3, Math.min(3, zoom));
+    const horiz = dist * Math.cos(el);
+    camera.position.set(horiz * Math.sin(az), dist * Math.sin(el), horiz * Math.cos(az));
+    camera.lookAt(0, 0, 0);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  }
+  // Vista por defecto: 3/4 estable.
+  setView(35, 20, 1);
 
   // --- Luces ---
   const ambient = new THREE.AmbientLight(0xffffff, 0.5);
@@ -142,7 +157,7 @@ export function createScene(container: HTMLElement): SceneContext {
     }
   }
 
-  return { scene, camera, renderer, css2dRenderer, controls, dispose, resize };
+  return { scene, camera, renderer, css2dRenderer, controls, setView, dispose, resize };
 }
 
 // ---------------------------------------------------------------------------

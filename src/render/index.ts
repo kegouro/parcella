@@ -38,6 +38,9 @@ export interface Viewer {
    */
   setProgress(p: number): void;
 
+  /** Orienta la cámara fija desde sliders (azimut/elevación en grados, zoom multiplicador). */
+  setView(azimuthDeg: number, elevationDeg: number, zoom: number): void;
+
   /** Ajusta el renderer al tamaño del contenedor. */
   resize(): void;
 
@@ -277,5 +280,9 @@ export function createViewer(container: HTMLElement): Viewer {
     }
   }
 
-  return { update, setProgress, resize, toDataURL, dispose, setLabels };
+  function setView(azimuthDeg: number, elevationDeg: number, zoom: number): void {
+    ctx.setView(azimuthDeg, elevationDeg, zoom);
+  }
+
+  return { update, setProgress, setView, resize, toDataURL, dispose, setLabels };
 }

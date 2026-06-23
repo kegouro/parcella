@@ -1,11 +1,14 @@
 /**
  * derivation.ts — Lecciones de derivación geométrica del elemento diferencial.
  *
- * Genera lecciones paso a paso (punto → dl → dS/dA → dV) para los sistemas
- * de coordenadas canónicos de Parcella. Módulo PURO (sin DOM, sin Three.js).
+ * Cada lección tiene DOS fases:
+ *   1. "solo"    — cada diferencial por separado: cómo se mueve el punto al variar
+ *                  una sola coordenada (el arco/segmento que traza, en su color).
+ *   2. "combina" — se construye el elemento sumando un eje a la vez (acumulativo):
+ *                  punto/segmento → superficie → sólido.
  *
- * La longitud de cada arista se toma de jacobianFactorsLatex (fuente única de
- * verdad, verificada con SymPy). La narración explica la geometría de cada barrido.
+ * Módulo PURO (sin DOM, sin Three.js). La longitud de cada arista se toma de
+ * jacobianFactorsLatex (fuente única de verdad, verificada con SymPy).
  */
 
 import { getSystem } from './coords.js';
@@ -16,46 +19,43 @@ import type { SystemId } from './types.js';
 // ---------------------------------------------------------------------------
 
 export interface DerivStep {
-  /** 0 = punto de partida. */
   index: number;
-  /** Título corto del paso, p.ej. "Barre el azimut θ". */
+  /** Fase de la lección. */
+  phase: 'solo' | 'combina';
+  /** Título corto del paso. */
   title: string;
   /** Explicación geométrica en español (1–2 frases). */
   narration: string;
   /** Tipo de elemento geométrico resultante. */
   symbol: 'point' | 'dl' | 'dS' | 'dA' | 'dV';
-  /**
-   * Longitud de la NUEVA arista añadida en este paso
-   * (= jacobianFactorsLatex[sweepVar]).
-   * Vacío en el paso 0 (punto).
-   */
+  /** Longitud de la NUEVA arista de este paso (= jacobianFactorsLatex[sweepVar]). */
   lengthLatex: string;
-  /**
-   * Producto acumulado de longitudes hasta este paso.
-   * Vacío en el paso 0.
-   * Ejemplo: "dr \\cdot r\\sin\\phi\\,d\\theta"
-   */
+  /** Producto acumulado de longitudes hasta este paso (sin color). */
   partialLatex: string;
-  /** Qué variables ya fueron barridas en orden canónico [0,1,2]. */
+  /** Qué variables están "presentes" en este paso, orden canónico [0,1,2]. */
   activeVars: [boolean, boolean, boolean];
-  /** Índice canónico de la variable que se barre en este paso; null en el paso 0. */
+  /** Índice canónico de la variable que se barre/muestra en este paso. */
   sweepVar: number | null;
+  /**
+   * Índices canónicos cuyas longitudes forman el producto de este paso, en orden.
+   * La UI los usa para colorear cada factor con varColor(idx).
+   */
+  includedVars: number[];
 }
 
 export interface Lesson {
   system: SystemId;
-  /** Nombre legible del sistema, p.ej. "Esféricas". */
   label: string;
   /** Orden canónico de variables a barrer (planar: solo 2 índices). */
   buildOrder: number[];
-  /** Pasos de la lección: 1 (punto) + n (uno por variable barrida). */
+  /** Pasos: fase "solo" (uno por variable) + fase "combina" (acumulativos). */
   steps: DerivStep[];
-  /** Expresión LaTeX completa del elemento final, p.ej. "dV = r^2\\sin\\phi\\,dr\\,d\\theta\\,d\\phi". */
+  /** Expresión LaTeX completa del elemento final. */
   finalLatex: string;
 }
 
 // ---------------------------------------------------------------------------
-// Metadatos de narración geométrica por (sistema, variable canónica)
+// Narración — fase "solo" (el diferencial individual)
 // ---------------------------------------------------------------------------
 
 interface VarMeta {
@@ -63,100 +63,42 @@ interface VarMeta {
   narration: string;
 }
 
-/** Tabla de metadatos narrativos: clave `${systemId}:${varIndex}`. */
-const VAR_META: Record<string, VarMeta> = {
-  // ── Cartesianas ──────────────────────────────────────────────────────────
-  'cartesian:0': {
-    title: 'Barre la coordenada x',
-    narration:
-      'Avanza una distancia infinitesimal dx en línea recta a lo largo del eje x. ' +
-      'El punto se convierte en un segmento de longitud dx.',
-  },
-  'cartesian:1': {
-    title: 'Barre la coordenada y',
-    narration:
-      'Avanza una distancia infinitesimal dy en línea recta a lo largo del eje y. ' +
-      'El segmento anterior se extiende formando un rectángulo de lados dx × dy.',
-  },
-  'cartesian:2': {
-    title: 'Barre la coordenada z',
-    narration:
-      'Avanza una distancia infinitesimal dz en línea recta a lo largo del eje z. ' +
-      'El rectángulo se extiende en un paralelepípedo rectangular dx × dy × dz.',
-  },
+const SOLO_META: Record<string, VarMeta> = {
+  'cartesian:0': { title: 'Diferencial de x', narration: 'Al variar solo x, el punto se desliza en línea recta a lo largo del eje x una distancia dx. Es el diferencial de longitud en x.' },
+  'cartesian:1': { title: 'Diferencial de y', narration: 'Al variar solo y, el punto se desliza en línea recta a lo largo del eje y una distancia dy.' },
+  'cartesian:2': { title: 'Diferencial de z', narration: 'Al variar solo z, el punto se desliza en línea recta a lo largo del eje z una distancia dz.' },
 
-  // ── Polares (2D) ─────────────────────────────────────────────────────────
-  'polar:0': {
-    title: 'Barre el radio r',
-    narration:
-      'Aléjate del origen una distancia infinitesimal dr (desplazamiento radial, en línea recta). ' +
-      'El punto se convierte en un segmento de longitud dr.',
-  },
-  'polar:1': {
-    title: 'Barre el azimut φ',
-    narration:
-      'Gira un ángulo infinitesimal dφ manteniéndote a radio r: el punto recorre un arco de longitud r·dφ. ' +
-      'El segmento radial barre un parche de área curvo.',
-  },
+  'polar:0': { title: 'Diferencial radial dr', narration: 'Al variar solo r, el punto se aleja del origen en línea recta una distancia dr (dirección radial).' },
+  'polar:1': { title: 'Diferencial azimutal r dφ', narration: 'Al variar solo φ (radio r fijo), el punto recorre un arco de longitud r·dφ sobre la circunferencia de radio r.' },
 
-  // ── Cilíndricas ──────────────────────────────────────────────────────────
-  'cylindrical:0': {
-    title: 'Barre el radio ρ',
-    narration:
-      'Aléjate del eje z una distancia infinitesimal dρ (desplazamiento radial, en línea recta). ' +
-      'El punto se convierte en un segmento de longitud dρ.',
-  },
-  'cylindrical:1': {
-    title: 'Barre el azimut φ',
-    narration:
-      'Gira un ángulo infinitesimal dφ a radio ρ: el punto recorre un arco de longitud ρ·dφ. ' +
-      'El segmento radial barre una banda curva de la superficie cilíndrica.',
-  },
-  'cylindrical:2': {
-    title: 'Barre la altura z',
-    narration:
-      'Avanza una distancia infinitesimal dz en línea recta paralela al eje z. ' +
-      'El parche de superficie se extiende en un trozo de volumen cilíndrico.',
-  },
+  'cylindrical:0': { title: 'Diferencial radial dρ', narration: 'Al variar solo ρ, el punto se aleja del eje z en línea recta una distancia dρ.' },
+  'cylindrical:1': { title: 'Diferencial azimutal ρ dφ', narration: 'Al variar solo φ (radio ρ fijo), el punto recorre un arco de longitud ρ·dφ sobre la circunferencia.' },
+  'cylindrical:2': { title: 'Diferencial de altura dz', narration: 'Al variar solo z, el punto sube en línea recta paralelo al eje z una distancia dz.' },
 
-  // ── Esféricas ────────────────────────────────────────────────────────────
-  'spherical:0': {
-    title: 'Barre el radio r',
-    narration:
-      'Aléjate del origen una distancia infinitesimal dr (desplazamiento radial, en línea recta). ' +
-      'El punto se convierte en un segmento de longitud dr.',
-  },
-  'spherical:1': {
-    title: 'Barre el ángulo polar θ',
-    narration:
-      'Gira un ángulo infinitesimal dθ en el meridiano de radio r: el punto recorre un arco de longitud r·dθ. ' +
-      'El segmento anterior barre una franja de la superficie esférica.',
-  },
-  'spherical:2': {
-    title: 'Barre el azimut φ',
-    narration:
-      'Gira un ángulo infinitesimal dφ en el paralelo de radio r·sinθ: el punto recorre un arco de longitud r·sinθ·dφ. ' +
-      'La franja anterior se cierra formando el elemento de volumen esférico.',
-  },
+  'spherical:0': { title: 'Diferencial radial dr', narration: 'Al variar solo r, el punto se aleja del origen en línea recta una distancia dr (dirección radial).' },
+  'spherical:1': { title: 'Diferencial polar r dθ', narration: 'Al variar solo θ (radio r fijo), el punto recorre un arco de longitud r·dθ a lo largo del meridiano (de polo a polo).' },
+  'spherical:2': { title: 'Diferencial azimutal r sinθ dφ', narration: 'Al variar solo φ (r y θ fijos), el punto recorre un arco de longitud r·sinθ·dφ sobre el paralelo (círculo horizontal).' },
 };
 
 // ---------------------------------------------------------------------------
-// Narración del paso 0 (punto de partida) por sistema
+// Narración — fase "combina" (sumar un eje a la vez)
 // ---------------------------------------------------------------------------
 
-const STEP0_NARRATION: Record<string, string> = {
-  cartesian:
-    'Partimos de un punto fijo (x₀, y₀, z₀) en coordenadas cartesianas. ' +
-    'Barreremos sucesivamente x, y y z para construir el elemento de volumen dV.',
-  polar:
-    'Partimos de un punto fijo (r₀, φ₀) en coordenadas polares en el plano. ' +
-    'Barreremos r y φ para construir el elemento de área dA.',
-  cylindrical:
-    'Partimos de un punto fijo (ρ₀, φ₀, z₀) en coordenadas cilíndricas. ' +
-    'Barreremos ρ, φ y z para construir el elemento de volumen dV.',
-  spherical:
-    'Partimos de un punto fijo (r₀, θ₀, φ₀) en coordenadas esféricas (ISO: θ polar, φ azimutal). ' +
-    'Barreremos r, θ y φ para construir el elemento de volumen dV.',
+const COMBINA_META: Record<string, VarMeta> = {
+  'cartesian:0': { title: 'Sumamos x', narration: 'Arrastramos el punto a lo largo de dx: nace un segmento de longitud dx.' },
+  'cartesian:1': { title: 'Sumamos y', narration: 'Arrastramos el segmento a lo largo de dy: forma un rectángulo dx × dy (elemento de área).' },
+  'cartesian:2': { title: 'Sumamos z', narration: 'Arrastramos el rectángulo a lo largo de dz: forma el paralelepípedo dx × dy × dz (elemento de volumen).' },
+
+  'polar:0': { title: 'Sumamos r', narration: 'Arrastramos el punto a lo largo de dr: nace un segmento radial de longitud dr.' },
+  'polar:1': { title: 'Sumamos φ', narration: 'Arrastramos el segmento a lo largo del arco r·dφ: barre el elemento de área dA = r·dr·dφ.' },
+
+  'cylindrical:0': { title: 'Sumamos ρ', narration: 'Arrastramos el punto a lo largo de dρ: nace un segmento radial de longitud dρ.' },
+  'cylindrical:1': { title: 'Sumamos φ', narration: 'Arrastramos el segmento a lo largo del arco ρ·dφ: forma un parche de superficie curvo.' },
+  'cylindrical:2': { title: 'Sumamos z', narration: 'Arrastramos el parche a lo largo de dz: forma el elemento de volumen ρ·dρ·dφ·dz.' },
+
+  'spherical:0': { title: 'Sumamos r', narration: 'Arrastramos el punto a lo largo de dr: nace un segmento radial de longitud dr.' },
+  'spherical:1': { title: 'Sumamos θ', narration: 'Arrastramos el segmento a lo largo del arco r·dθ (meridiano): forma una franja de superficie.' },
+  'spherical:2': { title: 'Sumamos φ', narration: 'Arrastramos la franja a lo largo del arco r·sinθ·dφ (paralelo): cierra el elemento de volumen r²·sinθ·dr·dθ·dφ.' },
 };
 
 // ---------------------------------------------------------------------------
@@ -169,101 +111,77 @@ const LESSON_SYSTEMS: SystemId[] = ['cartesian', 'polar', 'cylindrical', 'spheri
 // buildLesson
 // ---------------------------------------------------------------------------
 
-/**
- * Genera la lección completa de derivación geométrica para un sistema dado.
- *
- * @param systemId  Identificador del sistema de coordenadas.
- * @returns         Lección con todos los pasos (punto + un paso por variable barrida).
- */
 export function buildLesson(systemId: SystemId): Lesson {
   const system = getSystem(systemId);
   const isPlanar = system.planar === true;
-
-  // Orden de barrido: para sistemas planos solo [0,1]; para 3D: [0,1,2]
   const buildOrder: number[] = isPlanar ? [0, 1] : [0, 1, 2];
 
   const steps: DerivStep[] = [];
+  let idx = 0;
 
-  // ── Paso 0: punto de partida ─────────────────────────────────────────────
-  steps.push({
-    index: 0,
-    title: 'Punto de partida',
-    narration: STEP0_NARRATION[systemId] ?? `Partimos de un punto en el sistema ${system.label}.`,
-    symbol: 'point',
-    lengthLatex: '',
-    partialLatex: '',
-    activeVars: [false, false, false],
-    sweepVar: null,
-  });
-
-  // ── Pasos de barrido ─────────────────────────────────────────────────────
-  const accumulatedLengths: string[] = [];
-  const activeVars: [boolean, boolean, boolean] = [false, false, false];
-
-  for (let stepNum = 0; stepNum < buildOrder.length; stepNum++) {
-    const varIdx = buildOrder[stepNum]; // índice canónico de la variable que se barre
-    const metaKey = `${systemId}:${varIdx}`;
-    const meta = VAR_META[metaKey];
-
-    // Longitud de la nueva arista
-    const lengthLatex = system.jacobianFactorsLatex[varIdx];
-
-    // Acumular
-    accumulatedLengths.push(lengthLatex);
-    activeVars[varIdx] = true;
-
-    // partialLatex: producto de las longitudes acumuladas
-    const partialLatex = accumulatedLengths.join(' \\cdot ');
-
-    // Symbol según nº de variables ya barridas
-    const barridas = accumulatedLengths.length;
-    let symbol: DerivStep['symbol'];
-    if (barridas === 1) {
-      symbol = 'dl';
-    } else if (barridas === 2) {
-      symbol = isPlanar ? 'dA' : 'dS';
-    } else {
-      symbol = 'dV';
-    }
-
+  // ── Fase 1: "solo" — cada diferencial por separado ───────────────────────
+  for (const v of buildOrder) {
+    const meta = SOLO_META[`${systemId}:${v}`];
+    const lengthLatex = system.jacobianFactorsLatex[v];
+    const active: [boolean, boolean, boolean] = [false, false, false];
+    active[v] = true;
     steps.push({
-      index: stepNum + 1,
-      title: meta?.title ?? `Barre la variable ${system.vars[varIdx].label}`,
-      narration:
-        meta?.narration ??
-        `Se barre la variable ${system.vars[varIdx].label} generando una arista de longitud ${lengthLatex}.`,
-      symbol,
+      index: idx++,
+      phase: 'solo',
+      title: meta?.title ?? `Diferencial de ${system.vars[v].label}`,
+      narration: meta?.narration ?? `Al variar solo ${system.vars[v].label}, el punto traza una arista de longitud ${lengthLatex}.`,
+      symbol: 'dl',
       lengthLatex,
-      partialLatex,
-      activeVars: [activeVars[0], activeVars[1], activeVars[2]],
-      sweepVar: varIdx,
+      partialLatex: lengthLatex,
+      activeVars: active,
+      sweepVar: v,
+      includedVars: [v],
     });
   }
 
-  // ── finalLatex ───────────────────────────────────────────────────────────
+  // ── Fase 2: "combina" — sumar un eje a la vez ────────────────────────────
+  const accumulated: string[] = [];
+  const included: number[] = [];
+  const active: [boolean, boolean, boolean] = [false, false, false];
+
+  for (let k = 0; k < buildOrder.length; k++) {
+    const v = buildOrder[k];
+    const meta = COMBINA_META[`${systemId}:${v}`];
+    const lengthLatex = system.jacobianFactorsLatex[v];
+    accumulated.push(lengthLatex);
+    included.push(v);
+    active[v] = true;
+
+    const count = accumulated.length;
+    let symbol: DerivStep['symbol'];
+    if (count === 1) symbol = 'dl';
+    else if (count === 2) symbol = isPlanar ? 'dA' : 'dS';
+    else symbol = 'dV';
+
+    steps.push({
+      index: idx++,
+      phase: 'combina',
+      title: meta?.title ?? `Sumamos ${system.vars[v].label}`,
+      narration: meta?.narration ?? `Barremos ${system.vars[v].label}: el elemento sube de dimensión.`,
+      symbol,
+      lengthLatex,
+      partialLatex: accumulated.join(' \\cdot '),
+      activeVars: [active[0], active[1], active[2]],
+      sweepVar: v,
+      includedVars: included.slice(),
+    });
+  }
+
   const prefix = isPlanar ? 'dA' : 'dV';
   const finalLatex = `${prefix} = ${system.volumeElementLatex}`;
 
-  return {
-    system: systemId,
-    label: system.label,
-    buildOrder,
-    steps,
-    finalLatex,
-  };
+  return { system: systemId, label: system.label, buildOrder, steps, finalLatex };
 }
 
 // ---------------------------------------------------------------------------
 // availableLessons
 // ---------------------------------------------------------------------------
 
-/**
- * Devuelve la lista de sistemas para los que hay lección disponible.
- * Excluye 'curvilinear' (caso general sin metadatos narrativos).
- */
 export function availableLessons(): { id: SystemId; label: string }[] {
-  return LESSON_SYSTEMS.map((id) => ({
-    id,
-    label: getSystem(id).label,
-  }));
+  return LESSON_SYSTEMS.map((id) => ({ id, label: getSystem(id).label }));
 }

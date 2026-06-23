@@ -10,6 +10,7 @@ import { buildLesson, availableLessons } from '../core/derivation.js';
 import type { Lesson, DerivStep } from '../core/derivation.js';
 import { getSystem } from '../core/coords.js';
 import { sampleRegion } from '../core/region.js';
+import { varColor } from '../core/colors.js';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -186,27 +187,26 @@ export function createDerivationMode(
     const stepIdx = currentStepIdx;
     const step = lesson.steps[stepIdx];
     const total = lesson.steps.length;
+    const system = getSystem(lesson.system);
 
-    // Indicador
-    stepIndicator.textContent = `Paso ${stepIdx + 1} / ${total}`;
+    // Indicador con fase (Fase 1: cada diferencial · Fase 2: combinando)
+    const phaseLabel = step.phase === 'solo' ? 'Fase 1 · cada diferencial' : 'Fase 2 · combinando';
+    stepIndicator.textContent = `${phaseLabel}  —  Paso ${stepIdx + 1} / ${total}`;
 
-    // Título y narración
+    // Título (teñido del color de la variable del paso) y narración
     stepTitle.textContent = step.title;
+    stepTitle.style.color = step.sweepVar !== null ? varColor(step.sweepVar) : '#e0e0f0';
     stepNarration.textContent = step.narration;
 
-    // partialLatex
+    // partialLatex con cada factor en el color de su variable
     partialBox.innerHTML = '';
-    if (step.partialLatex) {
-      const symbolMap: Record<string, string> = {
-        dl: 'dl',
-        dS: 'dS',
-        dA: 'dA',
-        dV: 'dV',
-      };
-      const sym = symbolMap[step.symbol] ?? '';
-      const latex = sym
-        ? `${sym} = ${step.partialLatex}`
-        : step.partialLatex;
+    if (step.includedVars.length) {
+      const coloredFactors = step.includedVars.map((v) => {
+        const factor = system.jacobianFactorsLatex[v];
+        return `\\textcolor{${varColor(v)}}{${factor}}`;
+      });
+      const sym = step.symbol === 'point' ? '' : step.symbol;
+      const latex = sym ? `${sym} = ${coloredFactors.join(' \\cdot ')}` : coloredFactors.join(' \\cdot ');
       partialBox.innerHTML = renderKatex(latex, true);
     }
 
@@ -282,7 +282,8 @@ export function createDerivationMode(
       }
 
       const { cartesian } = sampleRegion(region, system, tByOrder);
-      const html = renderKatex(step.lengthLatex, false);
+      const colored = `\\textcolor{${varColor(step.sweepVar)}}{${step.lengthLatex}}`;
+      const html = renderKatex(colored, false);
       viewer.setLabels([{ position: cartesian, html }]);
     } else {
       viewer.setLabels([]);

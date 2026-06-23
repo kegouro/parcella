@@ -13,6 +13,7 @@ import {
   createTutorial,
   createDerivationMode,
   createCurvilinearTool,
+  createViewControls,
   hasSeenWelcome,
 } from './ui/index.js';
 import { loadStateFromUrl, syncUrl, copyShareLink } from './services/share.js';
@@ -54,10 +55,12 @@ export function bootstrap(root: HTMLElement): void {
   const btnDerive = mkButton('', 'Derivar');
   btnExplore.classList.add('active');
   modeBar.append(btnExplore, btnDerive);
+  // Controles de vista 3D (cámara fija, estilo GeoGebra), comunes a ambos modos.
+  const viewWrap = el('div', 'view-wrap');
   const exploreWrap = el('div', 'mode-explore');
   const deriveWrap = el('div', 'mode-derive');
   deriveWrap.hidden = true;
-  panel.append(modeBar, exploreWrap, deriveWrap);
+  panel.append(modeBar, viewWrap, exploreWrap, deriveWrap);
 
   const viewer = el('div', 'viewer');
   const viewerTop = el('div', 'viewer-top');
@@ -88,6 +91,9 @@ export function bootstrap(root: HTMLElement): void {
 
   // --- Componentes ---
   const view: Viewer = createViewer(viewport);
+  createViewControls(viewWrap, {
+    onView: (az, elev, zoom) => view.setView(az, elev, zoom),
+  });
   const equationView = createEquationView(equations);
   const tutorial = createTutorial(document.body);
   const curvilinear = createCurvilinearTool(document.body);

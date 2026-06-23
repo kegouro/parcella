@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "Si usas este software, por favor cítalo."
+title: "Parcella — visualizador del elemento diferencial e integración"
+abstract: "Visualizador web interactivo del elemento diferencial (dl, dS, dV) y la integración por regiones, para cálculo multivariable y electromagnetismo."
+type: software
+authors:
+  - family-names: "Labarca Baeza"
+    given-names: "José"
+    orcid: "https://orcid.org/0009-0006-8890-4048"
+    affiliation: "Universidad Técnica Federico Santa María, Valparaíso, Chile"
+repository-code: "https://github.com/kegouro/parcella"
+url: "https://kegouro.github.io"
+license: MIT
+keywords:
+  - calculus
+  - multivariable calculus
+  - vector calculus
+  - physics education
+  - visualization
+  - WebGL
+  - integration
+  - differential element

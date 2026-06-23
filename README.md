@@ -163,3 +163,7 @@ Hecho por **José Labarca** — hermano de [Curvana](https://github.com/kegouro/
 Licencia [MIT](LICENSE).
 
 </div>
+
+---
+
+<sub>Parte del **[Pharos Project](https://kegouro.github.io)** — infraestructura científica y educativa sin barreras de entrada. · José Labarca Baeza</sub>

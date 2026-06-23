@@ -31,12 +31,12 @@ function el(tag: string, className?: string, text?: string): HTMLDivElement {
   return node;
 }
 
-/** Devuelve un nuevo AppState con `progress[c] = p` en cada variable activa. */
-function withPlayhead(state: AppState, p: number): AppState {
-  const progress = state.sweep.progress.map((prev, i) =>
-    state.sweep.active[i] ? p : prev,
-  ) as [number, number, number];
-  return { ...state, sweep: { ...state.sweep, progress } };
+/** Pone `progress[c] = p` en cada variable ACTIVA (mutando el estado).
+ *  Se usa para el play y la grabación, que barren todas las activas a la vez. */
+function applyUniformProgress(state: AppState, p: number): void {
+  for (let c = 0; c < 3; c++) {
+    if (state.sweep.active[c]) state.sweep.progress[c] = p;
+  }
 }
 
 export function bootstrap(root: HTMLElement): void {
@@ -99,6 +99,7 @@ export function bootstrap(root: HTMLElement): void {
       onChange(next) {
         // Cambio estructural: figura completa, animación detenida.
         state = next;
+        applyUniformProgress(state, 1);
         playhead = 1;
         stop();
         renderAll();
@@ -109,12 +110,13 @@ export function bootstrap(root: HTMLElement): void {
   );
 
   const transportBar = createTransportBar(transport, {
-    onProgress(p) {
+    // El usuario mueve el slider de UNA variable: progreso independiente por variable.
+    onVarProgress(c, p) {
       stop();
-      playhead = clamp01(p);
-      renderSweep();
-      equationView.update(withPlayhead(state, playhead));
-      transportBar.update(state, playhead, playing);
+      state.sweep.progress[c] = clamp01(p);
+      view.update(state);
+      equationView.update(state);
+      transportBar.update(state, playing);
     },
     onPlayToggle(next) {
       if (next) play();
@@ -122,10 +124,11 @@ export function bootstrap(root: HTMLElement): void {
     },
     onReset() {
       stop();
+      applyUniformProgress(state, 0);
       playhead = 0;
-      renderSweep();
-      equationView.update(withPlayhead(state, playhead));
-      transportBar.update(state, playhead, playing);
+      view.update(state);
+      equationView.update(state);
+      transportBar.update(state, playing);
     },
   });
 
@@ -154,38 +157,34 @@ export function bootstrap(root: HTMLElement): void {
     const canvas = viewport.querySelector('canvas');
     if (!canvas) return;
     stop();
-    const prev = playhead;
     btnGif.textContent = 'Grabando…';
     try {
       const blob = await recordSweepGif({
         canvas,
-        onFrame: (t) => {
-          playhead = clamp01(t);
-          renderSweep();
-        },
+        onFrame: (t) => renderUniform(clamp01(t)),
       });
       downloadGif(blob, 'parcella.gif');
       flash(btnGif, '¡Listo!', 'GIF');
     } catch {
       flash(btnGif, 'Error', 'GIF');
     } finally {
-      playhead = prev;
-      renderSweep();
+      playhead = 1;
+      renderUniform(1);
+      equationView.update(state);
+      transportBar.update(state, playing);
     }
   });
 
   // --- Render ---
   function renderAll(): void {
-    const s = withPlayhead(state, playhead);
-    view.update(s);
-    equationView.update(s);
-    transportBar.update(state, playhead, playing);
+    view.update(state);
+    equationView.update(state);
+    transportBar.update(state, playing);
   }
-  /** Actualización barata solo del barrido/elemento (durante la animación). */
-  function renderSweep(): void {
-    const sc = withPlayhead(state, playhead);
-    state.sweep.progress = sc.sweep.progress; // mantener sincronizado para la URL
-    view.setProgress(playhead);
+  /** Barato durante el play/grabación: mismo progreso en todas las activas. */
+  function renderUniform(p: number): void {
+    applyUniformProgress(state, p);
+    view.setProgress(p);
   }
 
   // --- Animación del barrido ---
@@ -194,21 +193,22 @@ export function bootstrap(root: HTMLElement): void {
     if (playhead >= 1) playhead = 0; // reiniciar si estaba al final
     playing = true;
     lastFrame = performance.now();
-    transportBar.update(state, playhead, playing);
+    transportBar.update(state, playing);
     const tick = (now: number): void => {
       if (!playing) return;
       const dt = now - lastFrame;
       lastFrame = now;
       playhead = clamp01(playhead + (dt * speed) / SWEEP_MS);
-      renderSweep();
-      transportBar.update(state, playhead, playing);
+      renderUniform(playhead);
+      transportBar.update(state, playing);
       if (now - lastEq > EQ_THROTTLE_MS) {
-        equationView.update(withPlayhead(state, playhead));
+        equationView.update(state);
         lastEq = now;
       }
       if (playhead >= 1) {
         stop();
-        equationView.update(withPlayhead(state, playhead));
+        equationView.update(state);
+        transportBar.update(state, playing);
         return;
       }
       rafId = requestAnimationFrame(tick);
@@ -244,7 +244,15 @@ export function bootstrap(root: HTMLElement): void {
   btnDerive.addEventListener('click', () => setMode('derive'));
 
   // --- Resize ---
+  // Observamos el viewport directamente: cuando las ecuaciones (KaTeX) crecen el
+  // layout tras renderizar, el alto del visor cambia sin un 'resize' de ventana.
+  // Sin esto, el canvas WebGL conserva su tamaño viejo y se desborda sobre la
+  // barra de transporte, tapándola.
   window.addEventListener('resize', () => view.resize());
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => view.resize());
+    ro.observe(viewport);
+  }
 
   // --- Arranque ---
   renderAll();

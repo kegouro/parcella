@@ -114,6 +114,7 @@ export function createViewer(container: HTMLElement): Viewer {
         samples.curve,
         samples.surface,
         samples.solidFaces,
+        state.sweep.active,
       );
       ctx.scene.add(sweepResult.group);
 
@@ -150,7 +151,7 @@ export function createViewer(container: HTMLElement): Viewer {
     // --- Elemento diferencial ---
     try {
       const cell = elementCell(state.region, system, state.sweep);
-      elemResult = buildElementMesh(cell.center, cell.edges);
+      elemResult = buildElementMesh(cell.center, cell.edges, state.sweep.active);
       ctx.scene.add(elemResult.group);
     } catch {
       // Posición inválida: no se dibuja
@@ -174,7 +175,7 @@ export function createViewer(container: HTMLElement): Viewer {
       }
       const system = getSystem(lastState.region.system);
       const cell = elementCell(lastState.region, system, lastState.sweep);
-      elemResult = buildElementMesh(cell.center, cell.edges);
+      elemResult = buildElementMesh(cell.center, cell.edges, lastState.sweep.active);
       ctx.scene.add(elemResult.group);
     } catch {
       // Posición inválida

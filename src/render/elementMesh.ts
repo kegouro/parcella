@@ -7,20 +7,44 @@
  *   2 edges → placa (dS) = paralelograma
  *   3 edges → cajita (dV) = paralelepípedo
  *
- * Color ámbar brillante (#ffb454) para máxima visibilidad.
+ * Cada arista se colorea según el índice canónico de su variable (varColor).
  */
 
 import * as THREE from 'three';
 import type { Vec3 } from '../core/types.js';
+import { varColor } from '../core/colors.js';
 
 // ---------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------
 
-const AMBER         = 0xffb454;
-const AMBER_EDGE    = 0xffd080;
 const AMBER_OPACITY = 0.85;
 const ELEM_SCALE    = 1.0;     // multiplicador visual del tamaño del parcella
+
+// Color de relleno neutro para caras (no tiene variable asociada)
+const FACE_COLOR    = 0xffd080;
+
+// ---------------------------------------------------------------------------
+// Helpers de color
+// ---------------------------------------------------------------------------
+
+/** Convierte un string '#rrggbb' o '#rgb' a número hex para Three.js. */
+function _hexNum(cssColor: string): number {
+  return parseInt(cssColor.replace('#', ''), 16);
+}
+
+/**
+ * Dado `activeVars` ([b0,b1,b2]) devuelve un array con los índices canónicos
+ * de las variables activas, en orden canónico (0 < 1 < 2).
+ * La k-ésima entrada corresponde a edges[k].
+ */
+function _canonicalIndices(activeVars: [boolean, boolean, boolean]): number[] {
+  const indices: number[] = [];
+  for (let c = 0; c < 3; c++) {
+    if (activeVars[c]) indices.push(c);
+  }
+  return indices;
+}
 
 // ---------------------------------------------------------------------------
 // API pública
@@ -32,26 +56,32 @@ export interface ElementMeshResult {
 
 /**
  * Construye los objetos Three.js del parcella infinitesimal.
+ *
+ * @param center     Centro del elemento en coordenadas cartesianas.
+ * @param edges      Un vector por cada variable ACTIVA, en orden canónico.
+ * @param activeVars Indica qué variables (índices 0,1,2) están activas.
  */
 export function buildElementMesh(
   center: Vec3,
   edges: Vec3[],
+  activeVars: [boolean, boolean, boolean] = [true, true, true],
 ): ElementMeshResult {
   const group = new THREE.Group();
+  const canonicalIdx = _canonicalIndices(activeVars);
 
   switch (edges.length) {
     case 0:
       group.add(_makePointElem(center));
       break;
     case 1:
-      group.add(..._makeSegment(center, edges[0]));
+      group.add(..._makeSegment(center, edges[0], canonicalIdx[0]));
       break;
     case 2:
-      group.add(..._makePlate(center, edges[0], edges[1]));
+      group.add(..._makePlate(center, edges[0], edges[1], canonicalIdx));
       break;
     case 3:
     default:
-      group.add(..._makeBox(center, edges[0], edges[1], edges[2]));
+      group.add(..._makeBox(center, edges[0], edges[1], edges[2], canonicalIdx));
       break;
   }
 
@@ -88,10 +118,11 @@ function _edgeScaled(e: Vec3): THREE.Vector3 {
 }
 
 function _makePointElem(center: Vec3): THREE.Mesh {
+  const col = _hexNum(varColor(0));
   const geo = new THREE.SphereGeometry(0.06, 16, 12);
   const mat = new THREE.MeshStandardMaterial({
-    color: AMBER,
-    emissive: AMBER,
+    color: col,
+    emissive: col,
     emissiveIntensity: 0.6,
     roughness: 0.15,
     metalness: 0.3,
@@ -101,22 +132,26 @@ function _makePointElem(center: Vec3): THREE.Mesh {
   return m;
 }
 
-function _makeSegment(center: Vec3, edge: Vec3): THREE.Object3D[] {
+/**
+ * Crea un segmento (dl) coloreado con el color de la variable canónica `canonicalIdx`.
+ */
+function _makeSegment(center: Vec3, edge: Vec3, canonicalIdx: number): THREE.Object3D[] {
+  const col = _hexNum(varColor(canonicalIdx));
   const c = _v(center);
   const e = _edgeScaled(edge);
   const end = _add(c, e);
 
   const pts = [c, end];
   const geo = new THREE.BufferGeometry().setFromPoints(pts);
-  const mat = new THREE.LineBasicMaterial({ color: AMBER_EDGE, linewidth: 3 });
+  const mat = new THREE.LineBasicMaterial({ color: col, linewidth: 3 });
   const line = new THREE.Line(geo, mat);
 
   // Marcadores en los extremos
   const sphere = (pos: THREE.Vector3) => {
     const sg = new THREE.SphereGeometry(0.04, 12, 8);
     const sm = new THREE.MeshStandardMaterial({
-      color: AMBER,
-      emissive: AMBER,
+      color: col,
+      emissive: col,
       emissiveIntensity: 0.5,
     });
     const s = new THREE.Mesh(sg, sm);
@@ -127,7 +162,12 @@ function _makeSegment(center: Vec3, edge: Vec3): THREE.Object3D[] {
   return [line, sphere(c), sphere(end)];
 }
 
-function _makePlate(center: Vec3, e1: Vec3, e2: Vec3): THREE.Object3D[] {
+/**
+ * Crea una placa (dS) con dos conjuntos de aristas, cada uno coloreado según
+ * su variable canónica. `canonicalIdx[0]` → aristas en dirección e1,
+ * `canonicalIdx[1]` → aristas en dirección e2.
+ */
+function _makePlate(center: Vec3, e1: Vec3, e2: Vec3, canonicalIdx: number[]): THREE.Object3D[] {
   const c  = _v(center);
   const v1 = _edgeScaled(e1);
   const v2 = _edgeScaled(e2);
@@ -151,9 +191,9 @@ function _makePlate(center: Vec3, e1: Vec3, e2: Vec3): THREE.Object3D[] {
   geo.computeVertexNormals();
 
   const mat = new THREE.MeshStandardMaterial({
-    color: AMBER,
-    emissive: AMBER,
-    emissiveIntensity: 0.25,
+    color: FACE_COLOR,
+    emissive: FACE_COLOR,
+    emissiveIntensity: 0.15,
     transparent: true,
     opacity: AMBER_OPACITY,
     side: THREE.DoubleSide,
@@ -163,16 +203,37 @@ function _makePlate(center: Vec3, e1: Vec3, e2: Vec3): THREE.Object3D[] {
 
   const mesh = new THREE.Mesh(geo, mat);
 
-  // Aristas
-  const edgePts = [p00, p10, p11, p01, p00];
-  const edgeGeo = new THREE.BufferGeometry().setFromPoints(edgePts);
-  const edgeMat = new THREE.LineBasicMaterial({ color: AMBER_EDGE });
-  const edges = new THREE.Line(edgeGeo, edgeMat);
+  const objs: THREE.Object3D[] = [mesh];
 
-  return [mesh, edges];
+  // Aristas en dirección e1 (color var 0 de las activas)
+  const col1 = _hexNum(varColor(canonicalIdx[0] ?? 0));
+  // Aristas en dirección e2 (color var 1 de las activas)
+  const col2 = _hexNum(varColor(canonicalIdx[1] ?? 1));
+
+  // Dos aristas en dirección v1: p00→p10 y p01→p11
+  for (const [a, b] of [[p00, p10], [p01, p11]] as [THREE.Vector3, THREE.Vector3][]) {
+    const edgeGeo = new THREE.BufferGeometry().setFromPoints([a, b]);
+    const edgeMat = new THREE.LineBasicMaterial({ color: col1 });
+    objs.push(new THREE.Line(edgeGeo, edgeMat));
+  }
+
+  // Dos aristas en dirección v2: p00→p01 y p10→p11
+  for (const [a, b] of [[p00, p01], [p10, p11]] as [THREE.Vector3, THREE.Vector3][]) {
+    const edgeGeo = new THREE.BufferGeometry().setFromPoints([a, b]);
+    const edgeMat = new THREE.LineBasicMaterial({ color: col2 });
+    objs.push(new THREE.Line(edgeGeo, edgeMat));
+  }
+
+  return objs;
 }
 
-function _makeBox(center: Vec3, e1: Vec3, e2: Vec3, e3: Vec3): THREE.Object3D[] {
+/**
+ * Crea el paralelepípedo (dV). Las 12 aristas se agrupan en 3 grupos de 4:
+ *   - 4 aristas en dirección v1 → color de canonicalIdx[0]
+ *   - 4 aristas en dirección v2 → color de canonicalIdx[1]
+ *   - 4 aristas en dirección v3 → color de canonicalIdx[2]
+ */
+function _makeBox(center: Vec3, e1: Vec3, e2: Vec3, e3: Vec3, canonicalIdx: number[]): THREE.Object3D[] {
   const c  = _v(center);
   const v1 = _edgeScaled(e1);
   const v2 = _edgeScaled(e2);
@@ -180,14 +241,14 @@ function _makeBox(center: Vec3, e1: Vec3, e2: Vec3, e3: Vec3): THREE.Object3D[] 
 
   // 8 vértices del paralelepípedo
   const verts = [
-    c.clone(),
-    _add(c, v1),
-    _add(c, v2),
-    _add(_add(c, v1), v2),
-    _add(c, v3),
-    _add(_add(c, v1), v3),
-    _add(_add(c, v2), v3),
-    _add(_add(_add(c, v1), v2), v3),
+    c.clone(),                         // 0: origin
+    _add(c, v1),                       // 1: +v1
+    _add(c, v2),                       // 2: +v2
+    _add(_add(c, v1), v2),             // 3: +v1+v2
+    _add(c, v3),                       // 4: +v3
+    _add(_add(c, v1), v3),             // 5: +v1+v3
+    _add(_add(c, v2), v3),             // 6: +v2+v3
+    _add(_add(_add(c, v1), v2), v3),   // 7: +v1+v2+v3
   ];
 
   // 6 caras (quad trianguladas)
@@ -220,11 +281,11 @@ function _makeBox(center: Vec3, e1: Vec3, e2: Vec3, e3: Vec3): THREE.Object3D[] 
   geo.computeVertexNormals();
 
   const mat = new THREE.MeshStandardMaterial({
-    color: AMBER,
-    emissive: AMBER,
-    emissiveIntensity: 0.2,
+    color: FACE_COLOR,
+    emissive: FACE_COLOR,
+    emissiveIntensity: 0.1,
     transparent: true,
-    opacity: AMBER_OPACITY,
+    opacity: AMBER_OPACITY * 0.6,
     side: THREE.DoubleSide,
     roughness: 0.2,
     metalness: 0.15,
@@ -232,28 +293,29 @@ function _makeBox(center: Vec3, e1: Vec3, e2: Vec3, e3: Vec3): THREE.Object3D[] 
   });
 
   const mesh = new THREE.Mesh(geo, mat);
+  const objs: THREE.Object3D[] = [mesh];
 
-  // 12 aristas del paralelepípedo
-  const edgePairs: [number, number][] = [
-    [0,1],[2,3],[4,5],[6,7],  // en dirección v1
-    [0,2],[1,3],[4,6],[5,7],  // en dirección v2
-    [0,4],[1,5],[2,6],[3,7],  // en dirección v3
+  // 12 aristas agrupadas por dirección
+  // Dirección v1 (4 aristas): pares de vértices que difieren solo en v1
+  const edgeGroups: Array<[number, number][]> = [
+    [[0,1],[2,3],[4,5],[6,7]],   // dirección v1
+    [[0,2],[1,3],[4,6],[5,7]],   // dirección v2
+    [[0,4],[1,5],[2,6],[3,7]],   // dirección v3
   ];
 
-  const edgePts: THREE.Vector3[] = [];
-  for (const [a, b] of edgePairs) {
-    edgePts.push(verts[a], verts[b]);
+  for (let k = 0; k < 3; k++) {
+    const col = _hexNum(varColor(canonicalIdx[k] ?? k));
+    const pts: THREE.Vector3[] = [];
+    for (const [a, b] of edgeGroups[k]) {
+      pts.push(verts[a], verts[b]);
+    }
+    const edgeGeo = new THREE.BufferGeometry().setFromPoints(pts);
+    const edgeIdx: number[] = [];
+    for (let i = 0; i < pts.length; i += 2) edgeIdx.push(i, i + 1);
+    edgeGeo.setIndex(edgeIdx);
+    const edgeMat = new THREE.LineBasicMaterial({ color: col, linewidth: 2 });
+    objs.push(new THREE.LineSegments(edgeGeo, edgeMat));
   }
 
-  const edgeGeo = new THREE.BufferGeometry().setFromPoints(edgePts);
-  // Construir índices para LineSegments (pares consecutivos)
-  const edgeIdx: number[] = [];
-  for (let i = 0; i < edgePts.length; i += 2) {
-    edgeIdx.push(i, i + 1);
-  }
-  edgeGeo.setIndex(edgeIdx);
-  const edgeMat = new THREE.LineBasicMaterial({ color: AMBER_EDGE, linewidth: 2 });
-  const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
-
-  return [mesh, edgeLines];
+  return objs;
 }

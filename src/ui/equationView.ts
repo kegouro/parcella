@@ -8,6 +8,7 @@ import { getSystem } from '../core/coords.js';
 import { differentialLatex } from '../core/differential.js';
 import { integratePartial, integrateTotal, progressFraction, measureLabel } from '../core/integrate.js';
 import { boundToLatex } from '../core/format.js';
+import { varColor } from '../core/colors.js';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -106,9 +107,14 @@ export function createEquationView(container: HTMLElement): { update(state: AppS
     } else {
       for (let i = 0; i < diffResult.factors.length; i++) {
         const f = diffResult.factors[i];
+        // índice canónico = i (factors está en orden canónico 0,1,2)
+        const hex = varColor(i);
+        // Activos: color pleno; congelados: color tenue (50% alpha via opacity CSS)
+        const coloredLatex = `\\textcolor{${hex}}{${f.latex}}`;
         const factorEl = document.createElement('span');
         factorEl.className = `eq-factor${f.active ? ' eq-factor--active' : ' eq-factor--frozen'}`;
-        factorEl.appendChild(renderKatex(f.latex));
+        if (!f.active) factorEl.style.opacity = '0.45';
+        factorEl.appendChild(renderKatex(coloredLatex));
         factorEl.title = f.active ? `${f.varName} (integrada)` : `${f.varName} (congelada)`;
         diffExprRow.appendChild(factorEl);
         if (i < diffResult.factors.length - 1) {
@@ -186,13 +192,22 @@ function buildIntegralLatex(state: AppState, sys: ReturnType<typeof getSystem>, 
     integrandLatex = '\\mathbf{F} \\cdot d\\mathbf{S}';
   }
 
-  // Differential part: product of active jacobian factors
-  const diffParts: string[] = [];
+  // Differential part: product of active jacobian factors, each colored by canonical index
+  // Build a map level → colored diff factor string (innermost first)
+  const coloredDiffByLevel: Map<number, string> = new Map();
   for (let level = 0; level < 3; level++) {
     const c = region.order[level];
     if (sweep.active[c]) {
-      diffParts.push(sys.jacobianFactorsLatex[c]);
+      const hex = varColor(c);
+      coloredDiffByLevel.set(level, `\\textcolor{${hex}}{${sys.jacobianFactorsLatex[c]}}`);
     }
+  }
+
+  // Assemble the diff latex in integration order (innermost first = activeLevels[0])
+  const diffParts: string[] = [];
+  for (const level of activeLevels) {
+    const part = coloredDiffByLevel.get(level);
+    if (part) diffParts.push(part);
   }
   const diffLatex = diffParts.join('\\,');
 
@@ -205,9 +220,11 @@ function buildIntegralLatex(state: AppState, sys: ReturnType<typeof getSystem>, 
   // Collect from outermost to innermost: activeLevels reversed
   for (let i = activeLevels.length - 1; i >= 0; i--) {
     const level = activeLevels[i];
+    const c = region.order[level];
+    const hex = varColor(c);
     const lower = boundToLatex(region.bounds[level].lower);
     const upper = boundToLatex(region.bounds[level].upper);
-    inner = `\\int_{${lower}}^{${upper}} ${inner}`;
+    inner = `\\textcolor{${hex}}{\\int_{${lower}}^{${upper}}} ${inner}`;
   }
 
   return inner;

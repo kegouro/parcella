@@ -1,12 +1,15 @@
 /**
- * transportBar.ts — Barra de transporte: play/pausa, velocidad, scrubber de progreso.
+ * transportBar.ts — Barra de transporte: play/pausa, velocidad, scrubbers por variable activa.
  * Emite eventos y refleja estado en update(). La animación real la maneja app.ts.
  */
 
+import katex from 'katex';
 import type { AppState } from '../core/types.js';
+import { getSystem } from '../core/coords.js';
+import { varColor } from '../core/colors.js';
 
 export interface TransportHandlers {
-  onProgress(p: number): void;
+  onVarProgress(varIndex: number, p: number): void;
   onPlayToggle(playing: boolean): void;
   onReset(): void;
 }
@@ -14,7 +17,7 @@ export interface TransportHandlers {
 export function createTransportBar(
   container: HTMLElement,
   handlers: TransportHandlers,
-): { update(state: AppState, progress: number, playing: boolean): void } {
+): { update(state: AppState, playing: boolean): void } {
   injectStyles();
 
   const root = document.createElement('div');
@@ -53,27 +56,6 @@ export function createTransportBar(
   `;
   resetBtn.addEventListener('click', () => handlers.onReset());
 
-  // ---- Scrubber ----
-  const scrubLabel = document.createElement('label');
-  scrubLabel.className = 'tp-scrub-label';
-  const scrubId = `tp-scrub-${Date.now()}`;
-  scrubLabel.htmlFor = scrubId;
-  scrubLabel.textContent = 'Progreso:';
-
-  const scrubber = document.createElement('input');
-  scrubber.className = 'tp-scrubber';
-  scrubber.type = 'range';
-  scrubber.id = scrubId;
-  scrubber.min = '0';
-  scrubber.max = '1';
-  scrubber.step = '0.001';
-  scrubber.value = '0';
-  scrubber.setAttribute('aria-label', 'Progreso del barrido 0 a 1');
-
-  scrubber.addEventListener('input', () => {
-    handlers.onProgress(parseFloat(scrubber.value));
-  });
-
   // ---- Speed selector ----
   const speedLabel = document.createElement('label');
   speedLabel.className = 'tp-speed-label';
@@ -108,45 +90,114 @@ export function createTransportBar(
     root.dispatchEvent(evt);
   });
 
-  // ---- Progress label ----
-  const progressText = document.createElement('span');
-  progressText.className = 'tp-progress-text';
-  progressText.textContent = '0%';
-
-  // ---- Layout ----
+  // ---- Layout groups ----
   const btnGroup = document.createElement('div');
   btnGroup.className = 'tp-btn-group';
   btnGroup.appendChild(resetBtn);
   btnGroup.appendChild(playBtn);
-
-  const scrubGroup = document.createElement('div');
-  scrubGroup.className = 'tp-scrub-group';
-  scrubGroup.appendChild(scrubLabel);
-  scrubGroup.appendChild(scrubber);
-  scrubGroup.appendChild(progressText);
 
   const speedGroup = document.createElement('div');
   speedGroup.className = 'tp-speed-group';
   speedGroup.appendChild(speedLabel);
   speedGroup.appendChild(speedSelect);
 
+  // Sliders container (rebuilt on each update)
+  const slidersContainer = document.createElement('div');
+  slidersContainer.className = 'tp-sliders';
+
   root.appendChild(btnGroup);
-  root.appendChild(scrubGroup);
+  root.appendChild(slidersContainer);
   root.appendChild(speedGroup);
 
+  // Track active slider elements keyed by var index for efficient update
+  const sliderElements = new Map<number, HTMLInputElement>();
+  const progressTexts = new Map<number, HTMLElement>();
+
   // ---- Update ----
-  function update(_state: AppState, progress: number, playing: boolean): void {
+  function update(state: AppState, playing: boolean): void {
     root.dataset['playing'] = playing ? '1' : '0';
 
     const playIcon = playBtn.querySelector('.tp-icon--play') as HTMLElement | null;
     const pauseIcon = playBtn.querySelector('.tp-icon--pause') as HTMLElement | null;
     if (playIcon) playIcon.style.display = playing ? 'none' : '';
     if (pauseIcon) pauseIcon.style.display = playing ? '' : 'none';
-
-    scrubber.value = String(Math.min(1, Math.max(0, progress)));
-    progressText.textContent = `${(progress * 100).toFixed(0)}%`;
-
     playBtn.setAttribute('aria-pressed', String(playing));
+
+    const system = getSystem(state.region.system);
+
+    // Determine which var indices are active
+    const activeIndices = ([0, 1, 2] as const).filter(c => state.sweep.active[c]);
+
+    // Check if sliders need to be rebuilt (active set changed)
+    const currentKeys = [...sliderElements.keys()].sort().join(',');
+    const newKeys = activeIndices.slice().sort((a, b) => a - b).join(',');
+    const systemChanged = slidersContainer.dataset['system'] !== state.region.system;
+
+    if (currentKeys !== newKeys || systemChanged) {
+      // Rebuild sliders
+      slidersContainer.innerHTML = '';
+      sliderElements.clear();
+      progressTexts.clear();
+      slidersContainer.dataset['system'] = state.region.system;
+
+      for (const c of activeIndices) {
+        const color = varColor(c);
+        const varSpec = system.vars[c];
+
+        const row = document.createElement('div');
+        row.className = 'tp-var-row';
+
+        // LaTeX label
+        const latexSpan = document.createElement('span');
+        latexSpan.className = 'tp-var-latex';
+        latexSpan.style.color = color;
+        try {
+          katex.render(varSpec.latex, latexSpan, { throwOnError: false, displayMode: false });
+        } catch {
+          latexSpan.textContent = varSpec.label;
+        }
+
+        // Range input
+        const sliderId = `tp-slider-${c}-${Date.now()}`;
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.id = sliderId;
+        slider.className = 'tp-var-slider';
+        slider.min = '0';
+        slider.max = '1';
+        slider.step = '0.001';
+        slider.value = String(state.sweep.progress[c]);
+        slider.style.accentColor = color;
+        slider.setAttribute('aria-label', `Progreso de ${varSpec.label}`);
+
+        slider.addEventListener('input', () => {
+          handlers.onVarProgress(c, parseFloat(slider.value));
+        });
+
+        // Progress text
+        const pText = document.createElement('span');
+        pText.className = 'tp-var-pct';
+        pText.style.color = color;
+        pText.textContent = `${(state.sweep.progress[c] * 100).toFixed(0)}%`;
+
+        row.appendChild(latexSpan);
+        row.appendChild(slider);
+        row.appendChild(pText);
+        slidersContainer.appendChild(row);
+
+        sliderElements.set(c, slider);
+        progressTexts.set(c, pText);
+      }
+    } else {
+      // Just update values without rebuilding DOM
+      for (const c of activeIndices) {
+        const slider = sliderElements.get(c);
+        const pText = progressTexts.get(c);
+        const progress = state.sweep.progress[c];
+        if (slider) slider.value = String(Math.min(1, Math.max(0, progress)));
+        if (pText) pText.textContent = `${(progress * 100).toFixed(0)}%`;
+      }
+    }
   }
 
   return { update };
@@ -208,31 +259,41 @@ function injectStyles(): void {
       height: 14px;
       fill: #e0e0f0;
     }
-    .tp-scrub-group {
+    /* Per-variable sliders */
+    .tp-sliders {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+      min-width: 160px;
+    }
+    .tp-var-row {
       display: flex;
       align-items: center;
-      gap: 6px;
-      flex: 1;
-      min-width: 120px;
+      gap: 8px;
     }
-    .tp-scrub-label {
-      color: #8080a0;
-      font-size: 12px;
-      white-space: nowrap;
+    .tp-var-latex {
+      min-width: 22px;
+      font-size: 13px;
+      text-align: center;
+      flex-shrink: 0;
     }
-    .tp-scrubber {
+    .tp-var-latex .katex {
+      font-size: 1em;
+    }
+    .tp-var-slider {
       flex: 1;
-      accent-color: #7c5cff;
       cursor: pointer;
       height: 4px;
     }
-    .tp-progress-text {
-      color: #7c5cff;
-      font-size: 12px;
+    .tp-var-pct {
+      font-size: 11px;
       font-weight: 600;
       min-width: 32px;
       text-align: right;
+      flex-shrink: 0;
     }
+    /* Speed group */
     .tp-speed-group {
       display: flex;
       align-items: center;

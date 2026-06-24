@@ -815,17 +815,59 @@ function parseBound(value: string): number | string {
 }
 
 // ---------------------------------------------------------------------------
-// Section builder
+// Section builder — acordeón plegable con persistencia en localStorage
 // ---------------------------------------------------------------------------
 
 function buildSection(title: string): { el: HTMLElement; body: HTMLElement } {
+  const storageKey = `parcella.collapse.${title}`;
+
+  // Lee el estado guardado; por defecto expandido (collapsed = false).
+  const savedCollapsed = localStorage.getItem(storageKey) === 'true';
+
   const section = document.createElement('section');
   section.className = 'pc-section';
+
+  // Header clickeable
   const h = document.createElement('h3');
-  h.className = 'pc-section-title';
-  h.textContent = title;
+  h.className = 'pc-section-title pc-section-title--collapsible';
+  h.setAttribute('role', 'button');
+  h.setAttribute('aria-expanded', savedCollapsed ? 'false' : 'true');
+  h.tabIndex = 0;
+
+  const titleSpan = document.createElement('span');
+  titleSpan.textContent = title;
+
+  const chevron = document.createElement('span');
+  chevron.className = 'pc-chevron';
+  chevron.textContent = savedCollapsed ? '▸' : '▾';
+  chevron.setAttribute('aria-hidden', 'true');
+
+  h.appendChild(titleSpan);
+  h.appendChild(chevron);
+
+  // Cuerpo
   const body = document.createElement('div');
   body.className = 'pc-section-body';
+
+  if (savedCollapsed) {
+    body.classList.add('pc-section-body--collapsed');
+  }
+
+  function toggle(): void {
+    const isCollapsed = body.classList.toggle('pc-section-body--collapsed');
+    chevron.textContent = isCollapsed ? '▸' : '▾';
+    h.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    localStorage.setItem(storageKey, isCollapsed ? 'true' : 'false');
+  }
+
+  h.addEventListener('click', toggle);
+  h.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle();
+    }
+  });
+
   section.appendChild(h);
   section.appendChild(body);
   return { el: section, body };
@@ -899,11 +941,39 @@ function injectStyles(): void {
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+    .pc-section-title--collapsible {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .pc-section-title--collapsible:hover {
+      background: #1d2a50;
+    }
+    .pc-chevron {
+      font-size: 11px;
+      color: #7c5cff;
+      opacity: 0.75;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
     .pc-section-body {
       padding: 10px 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      max-height: 2000px;
+      overflow: hidden;
+      transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+      opacity: 1;
+    }
+    .pc-section-body--collapsed {
+      max-height: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      opacity: 0;
     }
     .pc-label {
       color: #a0a0c0;

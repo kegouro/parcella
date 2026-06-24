@@ -4,10 +4,20 @@
  * La cámara del visor está FIJA (no se arrastra); se orienta solo con estos
  * sliders: girar (azimut), inclinar (elevación) y zoom. Emite los valores por
  * un callback; app.ts los conecta a viewer.setView.
+ *
+ * También expone un selector de paletas de colores (Cálido / Daltónico / Neón
+ * / Pastel). Al cambiar se llama setPalette() y luego handlers.onPalette().
  */
+
+import { setPalette, getPalette, listPalettes } from '../core/colors.js';
+import type { PaletteName } from '../core/colors.js';
 
 export interface ViewControlsHandlers {
   onView(azimuthDeg: number, elevationDeg: number, zoom: number): void;
+  /** Llamado cuando el usuario cambia la paleta de colores.
+   *  Ya se habrá aplicado setPalette() antes de invocar este callback.
+   *  La app debe disparar un re-render completo para propagar los colores nuevos. */
+  onPalette?(): void;
 }
 
 export function createViewControls(
@@ -73,6 +83,56 @@ export function createViewControls(
   make('Inclinar', -89, 89, 1, el, (v) => `${v | 0}°`, (v) => (el = v));
   make('Zoom', 0.4, 2.5, 0.05, zoom, (v) => `×${v.toFixed(2)}`, (v) => (zoom = v));
 
+  // ---- Selector de paleta ----
+  const palettes = listPalettes();
+
+  const paletteRow = document.createElement('div');
+  paletteRow.className = 'vc-row';
+
+  const paletteLbl = document.createElement('span');
+  paletteLbl.className = 'vc-label';
+  paletteLbl.textContent = 'Paleta';
+
+  const paletteSelect = document.createElement('select');
+  paletteSelect.className = 'vc-palette-select';
+  paletteSelect.setAttribute('aria-label', 'Paleta de colores');
+
+  for (const p of palettes) {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.label;
+    paletteSelect.appendChild(opt);
+  }
+  paletteSelect.value = getPalette();
+
+  // Preview: 3 puntitos con los colores de la paleta elegida
+  const dotsWrap = document.createElement('span');
+  dotsWrap.className = 'vc-palette-dots';
+
+  function renderDots(paletteId: PaletteName): void {
+    dotsWrap.innerHTML = '';
+    const pal = palettes.find((p) => p.id === paletteId);
+    if (!pal) return;
+    for (const color of pal.colors) {
+      const dot = document.createElement('span');
+      dot.className = 'vc-palette-dot';
+      dot.style.background = color;
+      dotsWrap.appendChild(dot);
+    }
+  }
+
+  renderDots(getPalette());
+
+  paletteSelect.addEventListener('change', () => {
+    const newPalette = paletteSelect.value as PaletteName;
+    setPalette(newPalette);
+    renderDots(newPalette);
+    handlers.onPalette?.();
+  });
+
+  paletteRow.append(paletteLbl, paletteSelect, dotsWrap);
+  root.appendChild(paletteRow);
+
   // Emitir la vista inicial.
   handlers.onView(az, el, zoom);
 
@@ -125,6 +185,35 @@ function injectStyles(): void {
       font-size: 11px;
       font-family: ui-monospace, monospace;
       color: var(--lavender, #c4b5fd);
+    }
+    .vc-palette-select {
+      flex: 1;
+      min-width: 0;
+      background: #0f0f23;
+      border: 1px solid #3d3d60;
+      color: #e0e0f0;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+    .vc-palette-select:focus {
+      border-color: #7c5cff;
+      box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.2);
+    }
+    .vc-palette-dots {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .vc-palette-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
     }
   `;
   document.head.appendChild(style);

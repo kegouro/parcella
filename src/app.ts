@@ -93,6 +93,7 @@ export function bootstrap(root: HTMLElement): void {
   const view: Viewer = createViewer(viewport);
   createViewControls(viewWrap, {
     onView: (az, elev, zoom) => view.setView(az, elev, zoom),
+    onPalette: () => renderAll(),
   });
   const equationView = createEquationView(equations);
   const tutorial = createTutorial(document.body);

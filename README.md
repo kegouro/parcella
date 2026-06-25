@@ -2,15 +2,9 @@
 
 <div align="center">
 
-# Parcella
-
-### Mira el diferencial. Integra lo que ves.
-
-Visualizador interactivo del **elemento diferencial** ( $dl$ · $dS$ · $dV$ ) y de la integración por
-regiones, para **Cálculo multivariable** y **Electromagnetismo**.
+![Parcella Banner](docs/banner.svg)
 
 [![Probar en vivo](https://img.shields.io/badge/▶_Probar_en_vivo-7c5cff?style=for-the-badge&logoColor=white)](https://kegouro.github.io/parcella/)
-
 [![CI](https://github.com/kegouro/parcella/actions/workflows/ci.yml/badge.svg)](https://github.com/kegouro/parcella/actions/workflows/ci.yml)
 [![Deploy](https://github.com/kegouro/parcella/actions/workflows/deploy.yml/badge.svg)](https://github.com/kegouro/parcella/actions/workflows/deploy.yml)
 ![Tests](https://img.shields.io/badge/tests-463_passing-7c5cff)

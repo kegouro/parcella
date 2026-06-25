@@ -48,6 +48,16 @@ export function bootstrap(root: HTMLElement): void {
   const workspace = el('div', 'workspace');
   const panel = el('div', 'panel');
 
+  // Cabecera de la marca (brand-row)
+  const brandRow = el('div', 'brand-row');
+  const logoEl = el('div', 'logo');
+  logoEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28"><path d="M 7,21 Q 16,23 25,25 L 25,20 Q 16,18 7,16 Z" fill="#7c5cff" opacity="0.25"/><path d="M 13,9 Q 16,10 19,11 L 25,20 Q 16,18 7,16 Z" fill="#7c5cff" opacity="0.35"/><path d="M 13,14 L 19,16 L 25,25 Q 16,23 7,21 Z" fill="#7c5cff" opacity="0.15"/><line x1="13" y1="14" x2="7" y2="21" stroke="#f5a524" stroke-width="1.2" stroke-opacity="0.4" stroke-dasharray="1.5,1.5"/><line x1="13" y1="14" x2="13" y2="9" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.4" stroke-dasharray="1.5,1.5"/><path d="M 13,14 Q 16,15 19,16" fill="none" stroke="#34d399" stroke-width="1.2" stroke-opacity="0.4" stroke-dasharray="1.5,1.5"/><line x1="13" y1="9" x2="7" y2="16" stroke="#f5a524" stroke-width="1.6" stroke-linecap="round"/><line x1="19" y1="16" x2="25" y2="25" stroke="#f5a524" stroke-width="1.6" stroke-linecap="round"/><line x1="19" y1="11" x2="25" y2="20" stroke="#f5a524" stroke-width="1.6" stroke-linecap="round"/><line x1="7" y1="21" x2="7" y2="16" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round"/><line x1="25" y1="25" x2="25" y2="20" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round"/><line x1="19" y1="16" x2="19" y2="11" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round"/><path d="M 7,21 Q 16,23 25,25" fill="none" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/><path d="M 7,16 Q 16,18 25,20" fill="none" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/><path d="M 13,9 Q 16,10 19,11" fill="none" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/><circle cx="7" cy="21" r="0.8" fill="#ffffff"/><circle cx="25" cy="25" r="0.8" fill="#ffffff"/><circle cx="25" cy="20" r="0.8" fill="#ffffff"/><circle cx="7" cy="16" r="0.8" fill="#ffffff"/></svg>`;
+  const brandText = el('div');
+  const brandName = el('div', 'brand', 'Parcella');
+  const brandSub = el('div', 'brand-sub', 'Visualizador diferencial');
+  brandText.append(brandName, brandSub);
+  brandRow.append(logoEl, brandText);
+
   // Conmutador de modo (Explorar | Derivar) + contenedores de cada modo.
   const modeBar = el('div', 'seg mode-bar');
   modeBar.style.marginBottom = '14px';
@@ -60,7 +70,7 @@ export function bootstrap(root: HTMLElement): void {
   const exploreWrap = el('div', 'mode-explore');
   const deriveWrap = el('div', 'mode-derive');
   deriveWrap.hidden = true;
-  panel.append(modeBar, viewWrap, exploreWrap, deriveWrap);
+  panel.append(brandRow, modeBar, viewWrap, exploreWrap, deriveWrap);
 
   const viewer = el('div', 'viewer');
   const viewerTop = el('div', 'viewer-top');

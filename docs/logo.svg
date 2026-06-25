@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Definitions of gradients, filters, and glow effects -->
+  <defs>
+    <!-- Background Slate Gradient -->
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#181c30" />
+      <stop offset="100%" stop-color="#10131c" />
+    </radialGradient>
+
+    <!-- Glowing Violet Brand Gradient for faces -->
+    <linearGradient id="volumeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c5cff" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#4a3499" stop-opacity="0.1" />
+    </linearGradient>
+
+    <linearGradient id="topGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7c5cff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#c4b5fd" stop-opacity="0.15" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Subtle Glow for specific lines -->
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGradient)" />
+  
+  <!-- Outer Border Ring (Subtle purple accent) -->
+  <rect x="2" y="2" width="508" height="508" rx="126" fill="none" stroke="#7c5cff" stroke-width="2.5" stroke-opacity="0.15" />
+
+  <!-- Background Grid & Axes (Faint mathematical context) -->
+  <g stroke="#7a759e" stroke-opacity="0.15" stroke-width="1.5" fill="none">
+    <!-- Concentric coordinate spheres projection -->
+    <circle cx="200" cy="240" r="80" stroke-dasharray="4,6" />
+    <circle cx="200" cy="240" r="160" stroke-dasharray="4,6" />
+    <circle cx="200" cy="240" r="220" stroke-dasharray="4,6" />
+    
+    <!-- Coordinate grid lines -->
+    <line x1="200" y1="20" x2="200" y2="490" stroke-dasharray="6,8" />
+    <line x1="20" y1="240" x2="490" y2="240" stroke-dasharray="6,8" />
+    
+    <!-- Diagonal references -->
+    <line x1="44" y1="84" x2="356" y2="396" stroke-dasharray="4,6" />
+  </g>
+
+  <!-- Major Axes Labels (Faint math notation) -->
+  <g fill="#7a759e" fill-opacity="0.3" font-family="'JetBrains Mono', monospace" font-size="16" font-style="italic">
+    <text x="210" y="40">z</text>
+    <text x="475" y="235">y</text>
+    <text x="50" y="375">x</text>
+  </g>
+
+  <!-- 3D DIFFERENTIAL VOLUME ELEMENT (PARCELLA) -->
+  <g>
+    <!-- 1. Faces Fill (Order from back to front for correct alpha compositing) -->
+    <!-- Left face: A(200,240) -> C(200,170) -> G(130,240) -> E(130,310) -->
+    <path d="M 200,240 L 200,170 L 130,240 L 130,310 Z" fill="url(#volumeGradient)" />
+    
+    <!-- Bottom face: A(200,240) -> B(270,260) -> F(340,350) -> E(130,310) with curved front edge E->F -->
+    <path d="M 200,240 L 270,260 L 340,350 Q 235,330 130,310 Z" fill="url(#volumeGradient)" />
+    
+    <!-- Right face: B(270,260) -> D(270,190) -> H(340,280) -> F(340,350) -->
+    <path d="M 270,260 L 270,190 L 340,280 L 340,350 Z" fill="url(#volumeGradient)" />
+    
+    <!-- Top face: C(200,170) -> D(270,190) -> H(340,280) -> G(130,240) with curves -->
+    <path d="M 200,170 Q 235,180 270,190 L 340,280 Q 235,260 130,240 Z" fill="url(#topGradient)" />
+    
+    <!-- Front face: E(130,310) -> F(340,350) -> H(340,280) -> G(130,240) with curved horizontal edges -->
+    <path d="M 130,310 Q 235,330 340,350 L 340,280 Q 235,260 130,240 Z" fill="url(#volumeGradient)" stroke="#7c5cff" stroke-width="1.5" stroke-opacity="0.25" />
+
+    <!-- 2. Back Edges (A-connected, drawn dashed/faint for depth) -->
+    <!-- Radial: A(200,240) -> E(130,310) [Amber #f5a524] -->
+    <line x1="200" y1="240" x2="130" y2="310" stroke="#f5a524" stroke-width="2.5" stroke-opacity="0.35" stroke-dasharray="4,4" />
+    
+    <!-- Polar/Vertical: A(200,240) -> C(200,170) [Cyan #38bdf8] -->
+    <line x1="200" y1="240" x2="200" y2="170" stroke="#38bdf8" stroke-width="2.5" stroke-opacity="0.35" stroke-dasharray="4,4" />
+    
+    <!-- Azimuthal/Curved: A(200,240) -> B(270,260) [Green #34d399] -->
+    <path d="M 200,240 Q 235,250 270,260" fill="none" stroke="#34d399" stroke-width="2.5" stroke-opacity="0.35" stroke-dasharray="4,4" />
+
+    <!-- 3. Front Edges (Solid, glowing & bright) -->
+    <!-- RADIAL EDGES (Amber #f5a524) -->
+    <!-- Top-left radial: C(200,170) -> G(130,240) -->
+    <line x1="200" y1="170" x2="130" y2="240" stroke="#f5a524" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+    <!-- Bottom-right radial: B(270,260) -> F(340,350) -->
+    <line x1="270" y1="260" x2="340" y2="350" stroke="#f5a524" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+    <!-- Top-right radial: D(270,190) -> H(340,280) -->
+    <line x1="270" y1="190" x2="340" y2="280" stroke="#f5a524" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+
+    <!-- POLAR EDGES (Cyan #38bdf8) -->
+    <!-- Front-left vertical: E(130,310) -> G(130,240) -->
+    <line x1="130" y1="310" x2="130" y2="240" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+    <!-- Front-right vertical: F(340,350) -> H(340,280) -->
+    <line x1="340" y1="350" x2="340" y2="280" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+    <!-- Back-right vertical: B(270,260) -> D(270,190) -->
+    <line x1="270" y1="260" x2="270" y2="190" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+
+    <!-- AZIMUTHAL EDGES (Green #34d399) -->
+    <!-- Front-bottom curved: E(130,310) -> F(340,350) -->
+    <path d="M 130,310 Q 235,330 340,350" fill="none" stroke="#34d399" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+    <!-- Front-top curved: G(130,240) -> H(340,280) -->
+    <path d="M 130,240 Q 235,260 340,280" fill="none" stroke="#34d399" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+    <!-- Inner-top curved: C(200,170) -> D(270,190) -->
+    <path d="M 200,170 Q 235,180 270,190" fill="none" stroke="#34d399" stroke-width="4.5" stroke-linecap="round" filter="url(#softGlow)" />
+  </g>
+
+  <!-- Mathematically inspired overlay (A fraction mark / parcel grid lines inside the element) -->
+  <path d="M 182,320 Q 235,330 288,340" fill="none" stroke="#7c5cff" stroke-width="1" stroke-dasharray="2,3" stroke-opacity="0.5" />
+  <path d="M 182,250 Q 235,260 288,270" fill="none" stroke="#7c5cff" stroke-width="1" stroke-dasharray="2,3" stroke-opacity="0.5" />
+  <line x1="182" y1="320" x2="182" y2="250" stroke="#7c5cff" stroke-width="1" stroke-dasharray="2,3" stroke-opacity="0.5" />
+  <line x1="288" y1="340" x2="288" y2="270" stroke="#7c5cff" stroke-width="1" stroke-dasharray="2,3" stroke-opacity="0.5" />
+
+  <!-- Highlight vertex points (glow cores) -->
+  <g fill="#ffffff" filter="url(#softGlow)">
+    <circle cx="130" cy="310" r="3" />
+    <circle cx="340" cy="350" r="3" />
+    <circle cx="340" cy="280" r="3" />
+    <circle cx="130" cy="240" r="3" />
+    <circle cx="270" cy="190" r="3" />
+    <circle cx="200" cy="170" r="3" />
+  </g>
+</svg>

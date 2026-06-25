@@ -2,15 +2,9 @@
 
 <div align="center">
 
-# Parcella
-
-### See the differential. Integrate what you see.
-
-Interactive visualizer of the **differential element** ( $dl$ · $dS$ · $dV$ ) and region integration,
-for **Multivariable Calculus** and **Electromagnetism**.
+![Parcella Banner](docs/banner.en.svg)
 
 [![Try it live](https://img.shields.io/badge/▶_Try_it_live-7c5cff?style=for-the-badge&logoColor=white)](https://kegouro.github.io/parcella/)
-
 [![CI](https://github.com/kegouro/parcella/actions/workflows/ci.yml/badge.svg)](https://github.com/kegouro/parcella/actions/workflows/ci.yml)
 [![Deploy](https://github.com/kegouro/parcella/actions/workflows/deploy.yml/badge.svg)](https://github.com/kegouro/parcella/actions/workflows/deploy.yml)
 ![Tests](https://img.shields.io/badge/tests-463_passing-7c5cff)
